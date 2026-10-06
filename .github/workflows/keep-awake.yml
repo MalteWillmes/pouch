@@ -1,0 +1,23 @@
+# Pings the Pouch database every 3 days so the free Supabase project never pauses.
+# You can also run it by hand: Actions tab -> Keep database awake -> Run workflow.
+name: Keep database awake
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          URL: https://qxokfijurdgvrhmpfqwn.supabase.co
+          # The public key that is already in index.html; it can only call the list functions.
+          KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4b2tmaWp1cmRndnJobXBmcXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyOTc1MTYsImV4cCI6MjEwNjg3MzUxNn0.j-pQkSRmBMY862QeTCiReDKKnGF39pDrYBuZ2mCZAy4
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/rest/v1/rpc/pouch_ping" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}')
+          echo "Supabase answered $code"
+          test "$code" = "200"
