@@ -40,8 +40,11 @@ alter table public.lists  enable row level security;
 alter table public.items  enable row level security;
 alter table public.memory enable row level security;
 
+-- Helpers live in a private schema the public API can't reach.
+create schema if not exists pouch_private;
+
 -- ---------- Password check ----------
-create or replace function public._pouch_check(p_list text, p_pass text)
+create or replace function pouch_private.check_pass(p_list text, p_pass text)
 returns public.lists
 language plpgsql security definer set search_path = public, extensions as $$
 declare l public.lists;
@@ -54,7 +57,7 @@ begin
 end $$;
 
 -- ---------- Snapshot of a whole list ----------
-create or replace function public._pouch_snapshot(p_list text)
+create or replace function pouch_private.snapshot(p_list text)
 returns json
 language sql security definer set search_path = public as $$
   select json_build_object(
@@ -91,8 +94,8 @@ create or replace function public.pouch_open(p_list text, p_pass text)
 returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public._pouch_check(p_list, p_pass);
-  return public._pouch_snapshot(p_list);
+  perform pouch_private.check_pass(p_list, p_pass);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_add(p_list text, p_pass text, p_text text)
@@ -102,7 +105,7 @@ declare t text := left(regexp_replace(trim(p_text), '\s+', ' ', 'g'), 120);
         k text := lower(t);
         existing public.items;
 begin
-  perform public._pouch_check(p_list, p_pass);
+  perform pouch_private.check_pass(p_list, p_pass);
   if t = '' then raise exception 'empty_item'; end if;
 
   insert into public.memory (list_id, key, label) values (p_list, k, t)
@@ -117,7 +120,7 @@ begin
   else
     insert into public.items (list_id, text) values (p_list, t);
   end if;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_set_done(p_list text, p_pass text, p_item uuid, p_done boolean)
@@ -125,58 +128,56 @@ returns json
 language plpgsql security definer set search_path = public as $$
 declare l public.lists;
 begin
-  l := public._pouch_check(p_list, p_pass);
+  l := pouch_private.check_pass(p_list, p_pass);
   if p_done and l.done_mode = 'delete' then
     delete from public.items where id = p_item and list_id = p_list;
   else
     update public.items set done = p_done, done_at = case when p_done then now() end
      where id = p_item and list_id = p_list;
   end if;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_delete_item(p_list text, p_pass text, p_item uuid)
 returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public._pouch_check(p_list, p_pass);
+  perform pouch_private.check_pass(p_list, p_pass);
   delete from public.items where id = p_item and list_id = p_list;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_clear_done(p_list text, p_pass text)
 returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public._pouch_check(p_list, p_pass);
+  perform pouch_private.check_pass(p_list, p_pass);
   delete from public.items where list_id = p_list and done;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_set_mode(p_list text, p_pass text, p_mode text)
 returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public._pouch_check(p_list, p_pass);
+  perform pouch_private.check_pass(p_list, p_pass);
   update public.lists set done_mode = p_mode where id = p_list;
   if p_mode = 'delete' then
     delete from public.items where list_id = p_list and done;
   end if;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 create or replace function public.pouch_forget(p_list text, p_pass text, p_key text)
 returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public._pouch_check(p_list, p_pass);
+  perform pouch_private.check_pass(p_list, p_pass);
   delete from public.memory where list_id = p_list and key = p_key;
-  return public._pouch_snapshot(p_list);
+  return pouch_private.snapshot(p_list);
 end $$;
 
 -- ---------- Who may call what ----------
-revoke all on function public._pouch_check(text, text)  from public, anon, authenticated;
-revoke all on function public._pouch_snapshot(text)     from public, anon, authenticated;
 grant execute on function
   public.pouch_create(text, text),
   public.pouch_open(text, text),
