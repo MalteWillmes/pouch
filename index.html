@@ -510,16 +510,14 @@ function addItem(raw){
   const { qty, text } = parseQty(raw); if (!text) return;
   const k = keyOf(text);
   const existing = L.items.find(i => keyOf(i.text) === k && !i.done);
+  const pending = L.items.find(i => keyOf(i.text) === k && deleting.has(i.id));
+  if (pending){ undoDelete([pending.id]); if (qty && qty !== pending.qty) setQty(pending.id, qty); flash(pending.id); return; }
   if (existing && !deleting.has(existing.id)){
     if (qty && qty !== existing.qty) setQty(existing.id, qty);
     flash(existing.id); return;
   }
   change('pouch_add', { p_text: text, p_qty: qty }, () => {
-    const done = L.items.find(i => keyOf(i.text) === k);
-    if (done){
-      if (deleting.has(done.id)){ clearTimeout(deleting.get(done.id)); deleting.delete(done.id); }
-      done.done = false; done.done_at = null; done.qty = qty || '1';
-    } else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, created_at:new Date().toISOString() });
+    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, created_at:new Date().toISOString() });
     const m = L.memory.find(m => m.key === k);
     if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
   });

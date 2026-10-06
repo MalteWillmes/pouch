@@ -132,14 +132,12 @@ begin
   on conflict (list_id, key) do update
     set uses = public.memory.uses + 1, last_used = now();
 
-  -- Same item already on the list? Bring it back instead of adding a duplicate.
+  -- Already on the list and not crossed off? Just update its amount.
+  -- (A crossed-off copy stays in the pile; the item is added anew.)
   select * into existing from public.items
-   where list_id = p_list and lower(text) = k order by done asc limit 1;
+   where list_id = p_list and lower(text) = k and not done limit 1;
   if existing.id is not null then
-    update public.items
-       set done = false, done_at = null,
-           qty = case when existing.done then coalesce(q, '1') else coalesce(q, existing.qty) end
-     where id = existing.id;
+    update public.items set qty = coalesce(q, existing.qty) where id = existing.id;
   else
     insert into public.items (list_id, text, qty) values (p_list, t, coalesce(q, '1'));
   end if;
