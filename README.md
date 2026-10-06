@@ -46,6 +46,8 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 - **New list:** type a name and a password on the start page.
 - **Share:** tap the share icon. The link includes the password, so whoever taps it gets straight in and their phone remembers the list.
 - **Cross off:** tap an item. Tap a crossed-off item to bring it back.
+- **Amounts:** type them in front of the item, like `2 milk`, `200g blueberries` or `three apples`. Items without an amount get 1. Tap the amount on an item to change it.
+- **People:** the first time you open a list, it asks for your name. Everyone who has opened the list shows at the top, with a green dot when they have it open right now. Tap your own name to change it.
 - **Suggestions:** as you type, earlier items from that list show up as chips. With the box empty, the most-used items show. Tap × on a chip to forget it.
 - **Crossed-off items (⋯ menu):**
   - **Hide it** (default): crossed-off items go into a pile at the bottom, hidden until you tap **Show**. **Clear** deletes the pile.

@@ -96,6 +96,10 @@ input:focus{border-color:var(--gum)}
 .box{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:background .15s,border-color .15s}
 .box svg{width:14px;height:14px;opacity:0}
 .txt{min-width:0;overflow-wrap:anywhere;background:linear-gradient(var(--ink),var(--ink)) no-repeat 0 56%/0 2px}
+.qty{flex:none;align-self:center;min-width:40px;height:32px;padding:0 10px;margin-left:4px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.qty.one{color:var(--muted);font-weight:400}
+.items li.done .qty{color:var(--muted);background:transparent;border-style:dashed}
+input.qty{width:84px;text-align:center;outline:none;border-color:var(--gum)}
 .del{flex:none;width:48px;border:0;background:none;color:var(--muted);font-size:22px;border-radius:0 var(--r) var(--r) 0}
 .del:hover{color:var(--danger)}
 .items li.done{background:transparent;border-style:dashed}
@@ -112,6 +116,17 @@ input:focus{border-color:var(--gum)}
 
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;color:var(--muted);padding:24px 12px;border:1.5px dashed var(--line);border-radius:20px}
 .empty strong{color:var(--ink);font:600 20px var(--display)}
+
+/* people */
+.people{display:flex;flex-wrap:wrap;gap:6px;margin-top:-6px}
+.person{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:14px;font-weight:600;max-width:100%;min-width:0}
+.person .av{position:relative;flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 13px var(--display);color:#fff}
+.person .av.on::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:#3BA569;border:2px solid var(--surface)}
+.person .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person small{color:var(--muted);font-weight:400}
+button.person{cursor:pointer;font-family:inherit;color:inherit}
+.namecard{display:flex;flex-direction:column;gap:8px;background:var(--gum-soft);border-radius:var(--r);padding:14px}
+.namecard label{font-weight:600;font-size:15px}
 
 /* settings sheet */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
@@ -161,16 +176,17 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 <!-- Home -->
 <main class="wrap" id="vHome" hidden>
-  <div class="hero"><span data-joey="big"></span><div><h1>Pouch</h1><p>Shared lists. One tap to cross off.</p></div></div>
+  <div class="hero"><span data-joey="big"></span><div><h1>Pouch</h1><p>Shared lists.</p></div></div>
   <section class="field" id="myListsSec">
     <label>Your lists</label>
     <ul class="lists" id="myLists"></ul>
   </section>
   <form class="card" id="newForm" autocomplete="off">
     <h2>New list</h2>
-    <div class="field"><label for="newName">Name</label><input id="newName" type="text" maxlength="60" placeholder="Groceries" required></div>
+    <div class="field"><label for="myNameNew">Your name</label><input id="myNameNew" type="text" maxlength="40" placeholder="So others know who's on the list" required autocomplete="given-name"></div>
+    <div class="field"><label for="newName">List name</label><input id="newName" type="text" maxlength="60" placeholder="Groceries" required></div>
     <div class="field"><label for="newPass">Password</label><input id="newPass" type="text" minlength="4" maxlength="64" placeholder="At least 4 characters" required autocapitalize="off" autocorrect="off" spellcheck="false"></div>
-    <p class="hint">Anyone with the link and this password can see and change the list. The share button puts both into one link.</p>
+    <p class="hint">Anyone with the link and this password can see and change the list.</p>
     <p class="err" id="newErr" hidden></p>
     <button class="btn" id="newBtn" type="submit">Create list</button>
   </form>
@@ -196,7 +212,13 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
     <button class="iconbtn" type="button" id="shareBtn" aria-label="Share list"><svg viewBox="0 0 20 20"><path d="M10 12.5V3m0 0L6.5 6.5M10 3l3.5 3.5M5 9.5H4v7.5h12V9.5h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="iconbtn" type="button" id="menuBtn" aria-label="List settings" aria-expanded="false"><svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.7" fill="currentColor"/><circle cx="10" cy="10" r="1.7" fill="currentColor"/><circle cx="15.5" cy="10" r="1.7" fill="currentColor"/></svg></button>
   </div>
-  <div class="sub"><span class="dot" id="dot"></span><span id="subText">Loading…</span></div>
+  <div class="sub"><span id="createdText"></span><span id="createdSep" hidden>·</span><span class="dot" id="dot"></span><span id="subText">Loading…</span></div>
+  <div class="people" id="people" aria-label="People on this list"></div>
+
+  <form class="namecard" id="nameForm" autocomplete="off" hidden>
+    <label for="myName">What's your name? Everyone on this list will see it.</label>
+    <div class="addrow"><input id="myName" type="text" maxlength="40" placeholder="Your name" autocomplete="given-name"><button class="btn" type="submit">Save</button></div>
+  </form>
 
   <section class="sheet" id="sheet" hidden>
     <div class="row">
@@ -217,7 +239,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
   <div class="addbar">
     <form class="addrow" id="addForm" autocomplete="off">
-      <input id="entry" type="text" placeholder="Add an item…" maxlength="120" enterkeyhint="done" aria-label="New item">
+      <input id="entry" type="text" placeholder="Add an item, e.g. 2 milk" maxlength="120" enterkeyhint="done" aria-label="New item">
       <button class="btn" type="submit">Add</button>
     </form>
     <div class="chips" id="chips"></div>
@@ -273,6 +295,14 @@ function saveList(id, pass, name){
 function forgetLocal(id){ store.set('pouch.lists', saved().filter(l => l.id !== id)); }
 const passFor = id => (saved().find(l => l.id === id) || {}).pass;
 
+/* ================= who am I (per device, no accounts) ================= */
+const myName = () => store.get('pouch.name', '');
+function deviceId(){
+  let d = store.get('pouch.device', '');
+  if (!d){ d = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g,''); store.set('pouch.device', d); }
+  return d;
+}
+
 /* ================= Supabase ================= */
 const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_KEY.startsWith('YOUR-');
 const sb = configured && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
@@ -304,6 +334,7 @@ document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click'
 
 /* ================= home ================= */
 function renderHome(){
+  $('#myNameNew').value = myName();
   const ul = $('#myLists'); ul.textContent = '';
   const all = saved();
   $('#myListsSec').hidden = all.length === 0;
@@ -318,8 +349,9 @@ function renderHome(){
 }
 $('#newForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const name = norm($('#newName').value), pass = $('#newPass').value;
-  if (!name) return;
+  const name = norm($('#newName').value), pass = $('#newPass').value, me = norm($('#myNameNew').value);
+  if (!name || !me) return;
+  store.set('pouch.name', me);
   if (pass.length < 4){ $('#newErr').textContent = 'Use a password with at least 4 characters.'; $('#newErr').hidden = false; return; }
   $('#newBtn').disabled = true; $('#newErr').hidden = true;
   try {
@@ -355,13 +387,13 @@ $('#gateForm').addEventListener('submit', async e => {
 });
 
 /* ================= list state ================= */
-const L = { id:null, pass:null, name:'', mode:'hide', items:[], memory:[], pending:0, channel:null, poll:null };
+const L = { id:null, pass:null, name:'', mode:'hide', created:null, items:[], memory:[], members:[], online:new Set(), pending:0, channel:null, poll:null };
 const just = new Set();          // ids that were crossed off a moment ago (stay in place briefly)
 const deleting = new Map();      // id -> timer, for delete mode with undo
 
 async function openList(id, pass, snap){
   const switching = L.id !== id;
-  if (switching){ leaveList(); L.id = id; L.pass = pass; L.items = []; L.memory = []; $('#listName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
+  if (switching){ leaveList(); L.id = id; L.pass = pass; L.items = []; L.memory = []; L.members = []; L.created = null; L.online = new Set(); $('#createdText').textContent = ''; $('#people').textContent = ''; $('#listName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
   show('vList');
   try {
     apply(snap || await rpc('pouch_open', { p_list: id, p_pass: pass }));
@@ -369,8 +401,31 @@ async function openList(id, pass, snap){
     if (err.wrong){ forgetLocal(id); leaveList(); showGate(id, true); return; }
     $('#subText').textContent = 'Offline. Retrying…';
   }
-  if (switching) connect();
+  if (switching){ connect(); join(); }
 }
+
+/* Put this device on the list's people row (or ask for a name first). */
+async function join(){
+  const me = myName();
+  $('#nameForm').hidden = !!me;
+  if (!me || !L.id) return;
+  const id = L.id;
+  try {
+    const s = await rpc('pouch_join', { p_list:id, p_pass:L.pass, p_device:deviceId(), p_name:me });
+    if (L.id === id && !L.pending) apply(s);
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    trackPresence();
+  } catch {}
+}
+function trackPresence(){
+  if (L.channel && myName()) L.channel.track({ device:deviceId(), name:myName() }).catch(() => {});
+}
+$('#nameForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = norm($('#myName').value); if (!n) return;
+  store.set('pouch.name', n); $('#myName').value = '';
+  join();
+});
 function leaveList(){
   if (L.channel){ sb.removeChannel(L.channel); L.channel = null; }
   clearInterval(L.poll); L.poll = null;
@@ -380,7 +435,15 @@ function leaveList(){
 function connect(){
   L.channel = sb.channel('pouch-' + L.id, { config:{ broadcast:{ self:false } } });
   L.channel.on('broadcast', { event:'changed' }, () => refreshSoon())
-           .subscribe(status => $('#dot').classList.toggle('live', status === 'SUBSCRIBED'));
+           .on('presence', { event:'sync' }, () => {
+             const st = L.channel.presenceState();
+             L.online = new Set(Object.values(st).flat().map(p => p.device));
+             renderPeople();
+           })
+           .subscribe(status => {
+             $('#dot').classList.toggle('live', status === 'SUBSCRIBED');
+             if (status === 'SUBSCRIBED') trackPresence();
+           });
   L.poll = setInterval(() => { if (!document.hidden) refreshSoon(); }, 30000);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && L.id) refreshSoon(); });
@@ -396,7 +459,7 @@ function refreshSoon(){
   }, 150);
 }
 function apply(s){
-  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || [];
+  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.created = s.created_at || null;
   saveList(L.id, L.pass, L.name);
   render();
 }
@@ -420,19 +483,43 @@ async function change(fn, args, optimistic){
   }
 }
 
+/* ================= quantities ================= */
+// "2 milk" -> 2 / milk, "200g blueberries" -> 200g / blueberries, "two eggs" -> 2 / eggs
+const UNITS = 'g|gr|kg|mg|l|ml|cl|dl|oz|lbs?|x|pcs?|pk|stk|packs?|cans?|bottles?|bags?|box(?:es)?|bunch(?:es)?|tbsp|tsp|cups?|jars?|tins?|loa(?:f|ves)|slices?|cloves?|heads?|rolls?';
+const QTY_RE = new RegExp('^(\\d+(?:[.,]\\d+)?(?:/\\d+)?|[½¼¾⅓⅔])\\s*(' + UNITS + ')?\\.?\\s+(.+)$', 'i');
+const WORDS = { 'a dozen':12, dozen:12, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12, twenty:20 };
+const WORD_RE = new RegExp('^(' + Object.keys(WORDS).join('|') + ')\\s+(.+)$', 'i');
+const GLUE = /^(g|gr|kg|mg|l|ml|cl|dl|oz|lbs?)$/i;
+function parseQty(raw){
+  const t = norm(raw);
+  let m = t.match(QTY_RE);
+  if (m){
+    const u = m[2] ? m[2].toLowerCase() : '';
+    const qty = !u || u === 'x' ? m[1] : m[1] + (GLUE.test(u) ? '' : ' ') + u;
+    return { qty, text: m[3] };
+  }
+  m = t.match(WORD_RE);
+  if (m) return { qty: String(WORDS[m[1].toLowerCase()]), text: m[2] };
+  return { qty: null, text: t };
+}
+const cleanQty = q => norm(q || '').slice(0, 20) || '1';
+
 /* ================= actions ================= */
 let tmpN = 0;
 function addItem(raw){
-  const text = norm(raw); if (!text) return;
+  const { qty, text } = parseQty(raw); if (!text) return;
   const k = keyOf(text);
   const existing = L.items.find(i => keyOf(i.text) === k && !i.done);
-  if (existing && !deleting.has(existing.id)){ flash(existing.id); return; }
-  change('pouch_add', { p_text: text }, () => {
+  if (existing && !deleting.has(existing.id)){
+    if (qty && qty !== existing.qty) setQty(existing.id, qty);
+    flash(existing.id); return;
+  }
+  change('pouch_add', { p_text: text, p_qty: qty }, () => {
     const done = L.items.find(i => keyOf(i.text) === k);
     if (done){
       if (deleting.has(done.id)){ clearTimeout(deleting.get(done.id)); deleting.delete(done.id); }
-      done.done = false; done.done_at = null;
-    } else L.items.push({ id:'tmp-' + (++tmpN), text, done:false, created_at:new Date().toISOString() });
+      done.done = false; done.done_at = null; done.qty = qty || '1';
+    } else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, created_at:new Date().toISOString() });
     const m = L.memory.find(m => m.key === k);
     if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
   });
@@ -453,6 +540,29 @@ function toggle(id){
   const nowDone = !it.done;
   if (nowDone){ just.add(id); setTimeout(() => { just.delete(id); render(); }, 900); }
   change('pouch_set_done', { p_item:id, p_done:nowDone }, () => { it.done = nowDone; it.done_at = nowDone ? new Date().toISOString() : null; });
+}
+function setQty(id, raw){
+  const it = L.items.find(i => i.id === id); if (!it || id.startsWith('tmp-')) return;
+  const qty = cleanQty(raw); if (qty === it.qty) return;
+  change('pouch_set_qty', { p_item:id, p_qty:qty }, () => { it.qty = qty; });
+}
+let editingQty = null;
+function editQty(id, pill){
+  const it = L.items.find(i => i.id === id); if (!it) return;
+  editingQty = id;
+  const inp = document.createElement('input');
+  inp.className = 'qty'; inp.type = 'text'; inp.id = 'qtyEdit'; inp.maxLength = 20;
+  inp.value = it.qty || '1'; inp.setAttribute('aria-label', 'Amount of ' + it.text);
+  inp.setAttribute('enterkeyhint', 'done');
+  pill.replaceWith(inp); inp.focus(); inp.select();
+  let finished = false;
+  const finish = save => {
+    if (finished) return; finished = true; editingQty = null;
+    if (save) setQty(id, inp.value); else render();
+    if (save && cleanQty(inp.value) === it.qty) render();
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); });
+  inp.addEventListener('blur', () => finish(true));
 }
 function undoDelete(ids){
   for (const id of ids){
@@ -484,10 +594,15 @@ function itemLi(it){
   tog.innerHTML = `<span class="box">${CHECK}</span>`;
   const t = document.createElement('span'); t.className = 'txt'; t.textContent = it.text; tog.append(t);
   tog.addEventListener('click', () => toggle(it.id));
+  const q = document.createElement('button'); q.type = 'button';
+  const qv = it.qty || '1';
+  q.className = 'qty' + (qv === '1' ? ' one' : ''); q.textContent = qv;
+  q.setAttribute('aria-label', `Amount: ${qv}. Tap to change`);
+  q.addEventListener('click', () => editQty(it.id, q));
   const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '×';
   del.setAttribute('aria-label', 'Delete ' + it.text);
   del.addEventListener('click', () => removeItem(it.id));
-  li.append(tog, del);
+  li.append(tog, q, del);
   return li;
 }
 function render(){
@@ -497,8 +612,10 @@ function render(){
   const active = L.items.filter(i => !i.done || just.has(i.id) || deleting.has(i.id));
   const done = L.items.filter(i => i.done && !just.has(i.id) && !deleting.has(i.id))
                       .sort((a,b) => (b.done_at || '').localeCompare(a.done_at || ''));
-  $('#activeList').replaceChildren(...active.map(itemLi));
-  $('#doneList').replaceChildren(...done.map(itemLi));
+  if (!editingQty){
+    $('#activeList').replaceChildren(...active.map(itemLi));
+    $('#doneList').replaceChildren(...done.map(itemLi));
+  }
 
   const open = active.filter(i => !i.done).length;
   $('#empty').hidden = active.length > 0;
@@ -517,7 +634,34 @@ function render(){
     ? 'Crossed-off items move to a hidden pile you can open and clear.'
     : 'Crossed-off items are deleted after a few seconds. You can undo right after tapping.';
   $('#shareBox').textContent = shareUrl();
+  if (L.created){
+    const d = new Date(L.created);
+    $('#createdText').textContent = 'Created ' + d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
+  }
+  $('#createdSep').hidden = !L.created;
+  renderPeople();
   renderChips();
+}
+const AV_COLORS = ['#2E6A4E','#A0522D','#6A4C93','#1F6F8B','#B5651D','#7A3E48','#4F6D3A','#3D5A80'];
+function renderPeople(){
+  const box = $('#people'); box.textContent = '';
+  const me = deviceId();
+  const ppl = [...L.members].sort((a,b) => (b.device === me) - (a.device === me));
+  for (const p of ppl){
+    const mine = p.device === me;
+    const el = document.createElement(mine ? 'button' : 'span');
+    el.className = 'person';
+    if (mine){ el.type = 'button'; el.setAttribute('aria-label', 'Change your name'); el.addEventListener('click', () => { $('#nameForm').hidden = false; $('#myName').value = myName(); $('#myName').focus(); }); }
+    const av = document.createElement('span'); av.className = 'av' + (L.online.has(p.device) ? ' on' : '');
+    let h = 0; for (const c of p.device) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    av.style.background = AV_COLORS[h % AV_COLORS.length];
+    av.textContent = (p.name.trim()[0] || '?').toUpperCase();
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
+    el.append(av, nm);
+    if (mine){ const y = document.createElement('small'); y.textContent = '(you)'; el.append(y); }
+    el.title = L.online.has(p.device) ? 'Here now' : 'Last here ' + new Date(p.last_seen).toLocaleDateString(undefined, { day:'numeric', month:'short' });
+    box.append(el);
+  }
 }
 function renderChips(){
   const box = $('#chips'); box.textContent = '';
