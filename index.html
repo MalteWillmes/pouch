@@ -152,7 +152,10 @@ button.person{cursor:pointer;font-family:inherit;color:inherit}
 .tagnew input{font-size:15px;padding:8px 12px;border-radius:12px}
 .tagnew .btn{padding:8px 14px;font-size:15px;border-radius:12px}
 .tagedit .link{align-self:flex-start;padding:4px 0}
-.sortbar{display:flex;justify-content:flex-end;margin-block:-8px -4px}
+.sortbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-block:-8px -4px}
+.copybtn{font:600 14px var(--body);color:var(--ink);background:transparent;border:1.5px solid var(--line);border-radius:999px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px}
+.copybtn svg{width:14px;height:14px}
+.copybox{width:100%;min-height:140px;font:15px/1.4 var(--body);padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
 .sortsel{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
 .sortsel select{font:600 14px var(--body);color:var(--ink);background:transparent;border:1.5px solid var(--line);border-radius:999px;padding:5px 28px 5px 12px;width:auto;appearance:none;-webkit-appearance:none;
   background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
@@ -307,7 +310,8 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   </div>
 
   <div class="sortbar" id="sortBar" hidden>
-    <label class="sortsel">Sort
+    <button class="copybtn" type="button" id="copyBtn"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 3.2V3a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3v5.5A1.5 1.5 0 0 0 3.5 10h.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Copy list</button>
+    <label class="sortsel" id="sortWrap">Sort
       <select id="sortSel">
         <option value="cat">By category</option>
         <option value="alpha">A–Z</option>
@@ -315,6 +319,11 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         <option value="time">Time added</option>
       </select>
     </label>
+  </div>
+  <div class="card" id="copyFallback" hidden>
+    <p class="hint">Copying isn't allowed here. Select the text and copy it yourself:</p>
+    <textarea class="copybox" id="copyText" readonly aria-label="List as text"></textarea>
+    <button class="link" type="button" id="copyClose">Close</button>
   </div>
   <div class="filter" id="filterRow" role="group" aria-label="Show only one category" hidden></div>
   <ul class="items" id="activeList" aria-label="To get"></ul>
@@ -806,7 +815,8 @@ function render(){
     $('#doneList').replaceChildren(...done.map(itemLi));
   }
   renderFilter(activeAll);
-  $('#sortBar').hidden = activeAll.filter(i => !i.done).length < 2;
+  $('#sortBar').hidden = activeAll.filter(i => !i.done).length < 1;
+  $('#sortWrap').hidden = activeAll.filter(i => !i.done).length < 2;
   $('#sortSel').value = sortMode();
   $('#sortSel').querySelector('[value="cat"]').hidden = !L.cats.length;
   $('#sortSel').querySelector('[value="person"]').hidden = L.members.length < 2;
@@ -1125,6 +1135,31 @@ $('#catImportBtn').addEventListener('click', async () => {
   } catch { toast('Couldn’t add them. If you copied from a list, its password may have changed.'); }
   finally { $('#catImportBtn').disabled = false; }
 });
+
+/* ================= copy as text ================= */
+// The open items in the order shown (and only the chosen category when filtered), e.g.
+//   Groceries
+//   - 2 melk
+//   - brød
+function listAsText(){
+  const open = L.items.filter(i => !i.done && !hidden.has(i.id) && !deleting.has(i.id)).sort(sorter());
+  const shown = filterCat ? open.filter(i => (i.cats || []).includes(filterCat)) : open;
+  const cat = filterCat && L.cats.find(c => c.id === filterCat);
+  const title = L.name + (cat ? ` (${cat.name})` : '');
+  return [title, ...shown.map(i => '- ' + (i.qty && i.qty !== '1' ? i.qty + ' ' : '') + i.text)].join('\n');
+}
+$('#copyBtn').addEventListener('click', async () => {
+  const text = listAsText();
+  try { await navigator.clipboard.writeText(text); toast('List copied. Paste it into a message.'); return; } catch {}
+  // older browsers: copy through a hidden text box
+  const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch {}
+  ta.remove();
+  if (ok){ toast('List copied. Paste it into a message.'); return; }
+  $('#copyText').value = text; $('#copyFallback').hidden = false; $('#copyText').focus(); $('#copyText').select();
+});
+$('#copyClose').addEventListener('click', () => { $('#copyFallback').hidden = true; });
 
 /* ================= list controls ================= */
 $('#addForm').addEventListener('submit', e => {
