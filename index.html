@@ -128,6 +128,15 @@ button.person{cursor:pointer;font-family:inherit;color:inherit}
 .namecard{display:flex;flex-direction:column;gap:8px;background:var(--gum-soft);border-radius:var(--r);padding:14px}
 .namecard label{font-weight:600;font-size:15px}
 
+/* who added / crossed off */
+.who{flex:none;margin-left:auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:600 11px var(--display);color:#fff;opacity:.9}
+.items li.done .who{opacity:.5}
+.sheet .inline{display:flex;gap:8px}
+.sheet .inline input{font-size:16px;padding:10px 12px}
+.sheet .inline .btn{padding:10px 16px;font-size:15px}
+.btn.danger{background:transparent;color:var(--danger);border:1.5px solid var(--line)}
+.btn.danger.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+
 /* settings sheet */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--bg)}
@@ -234,7 +243,17 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
       <p class="hint">The share link includes the password, so whoever taps it gets straight in.</p>
       <div class="sharebox" id="shareBox"></div>
     </div>
+    <form class="row" id="renameForm" autocomplete="off">
+      <label class="label" for="renameInput">List name</label>
+      <div class="inline"><input id="renameInput" type="text" maxlength="60" required><button class="btn" type="submit">Rename</button></div>
+    </form>
+    <form class="row" id="passForm" autocomplete="off">
+      <label class="label" for="passInput">Change password</label>
+      <p class="hint">Everyone else is locked out until you share the list again with the new link.</p>
+      <div class="inline"><input id="passInput" type="text" minlength="4" maxlength="64" placeholder="New password" required autocapitalize="off" autocorrect="off" spellcheck="false"><button class="btn" type="submit">Change</button></div>
+    </form>
     <button class="btn ghost" type="button" id="forgetListBtn">Remove from this phone</button>
+    <button class="btn danger" type="button" id="deleteListBtn">Delete list for everyone</button>
   </section>
 
   <div class="addbar">
@@ -368,7 +387,7 @@ $('#newForm').addEventListener('submit', async e => {
 let gateId = null;
 function showGate(id, wrong){
   gateId = id; show('vGate');
-  $('#gateErr').textContent = wrong ? 'That password didn’t work. It may have been changed.' : '';
+  $('#gateErr').textContent = wrong ? 'That didn’t work. The password may have changed, or the list was deleted.' : '';
   $('#gateErr').hidden = !wrong; $('#gatePass').value = '';
   setTimeout(() => $('#gatePass').focus(), 50);
 }
@@ -427,6 +446,7 @@ $('#nameForm').addEventListener('submit', e => {
   join();
 });
 function leaveList(){
+  flushPending();
   if (L.channel){ sb.removeChannel(L.channel); L.channel = null; }
   clearInterval(L.poll); L.poll = null;
   for (const t of deleting.values()) clearTimeout(t);
@@ -516,8 +536,8 @@ function addItem(raw){
     if (qty && qty !== existing.qty) setQty(existing.id, qty);
     flash(existing.id); return;
   }
-  change('pouch_add', { p_text: text, p_qty: qty }, () => {
-    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, created_at:new Date().toISOString() });
+  change('pouch_add', { p_text: text, p_qty: qty, p_device: deviceId() }, () => {
+    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, added_by: deviceId(), created_at:new Date().toISOString() });
     const m = L.memory.find(m => m.key === k);
     if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
   });
@@ -529,7 +549,7 @@ function toggle(id){
     it.done = true; just.add(id); render();
     deleting.set(id, setTimeout(() => {
       deleting.delete(id); just.delete(id);
-      change('pouch_set_done', { p_item:id, p_done:true }, () => { L.items = L.items.filter(i => i.id !== id); });
+      change('pouch_set_done', { p_item:id, p_done:true, p_device:deviceId() }, () => { L.items = L.items.filter(i => i.id !== id); });
     }, 2800));
     const ids = [...deleting.keys()];
     toast(ids.length > 1 ? `${ids.length} items removed` : `${it.text} removed`, () => undoDelete(ids));
@@ -537,7 +557,34 @@ function toggle(id){
   }
   const nowDone = !it.done;
   if (nowDone){ just.add(id); setTimeout(() => { just.delete(id); render(); }, 900); }
-  change('pouch_set_done', { p_item:id, p_done:nowDone }, () => { it.done = nowDone; it.done_at = nowDone ? new Date().toISOString() : null; });
+  change('pouch_set_done', { p_item:id, p_done:nowDone, p_device:deviceId() }, () => { it.done = nowDone; it.done_at = nowDone ? new Date().toISOString() : null; it.done_by = nowDone ? deviceId() : null; });
+}
+/* "2 milk, bread; 200g cheese" or pasted lines -> several items.
+   A comma between digits ("1,5 kg") is a decimal, not a separator. */
+function splitItems(raw){
+  return raw.split(/\s*(?:[;\n\r•]|,(?!\d))\s*/).map(t => norm(t.replace(/^[-*–]\s+/, ''))).filter(Boolean);
+}
+function addMany(parts){
+  const seen = new Set(), batch = [];
+  for (const raw of parts){
+    const { qty, text } = parseQty(raw);
+    const k = keyOf(text);
+    if (!text || seen.has(k)) continue;
+    seen.add(k); batch.push({ text, qty });
+  }
+  if (!batch.length) return;
+  if (batch.length === 1){ addItem((batch[0].qty ? batch[0].qty + ' ' : '') + batch[0].text); return; }
+  change('pouch_add_many', { p_items: batch.slice(0, 50), p_device: deviceId() }, () => {
+    for (const { text, qty } of batch){
+      const k = keyOf(text);
+      const open = L.items.find(i => keyOf(i.text) === k && !i.done);
+      if (open){ if (qty) open.qty = qty; }
+      else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, added_by: deviceId(), created_at:new Date().toISOString() });
+      const m = L.memory.find(m => m.key === k);
+      if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
+    }
+  });
+  toast(`Added ${batch.length} items`);
 }
 function setQty(id, raw){
   const it = L.items.find(i => i.id === id); if (!it || id.startsWith('tmp-')) return;
@@ -570,10 +617,43 @@ function undoDelete(ids){
   }
   render();
 }
+/* Deleting waits a few seconds so it can be undone. */
+const hidden = new Set();          // ids hidden while waiting to be deleted
+const pendingDeletes = [];         // { ids, timer, list, pass }
+function deleteLater(ids, msg){
+  ids = ids.filter(id => !id.startsWith('tmp-')); if (!ids.length) return;
+  ids.forEach(id => hidden.add(id)); render();
+  const job = { ids, list: L.id, pass: L.pass };
+  job.timer = setTimeout(() => runDelete(job), 4000);
+  pendingDeletes.push(job);
+  toast(msg, () => {
+    clearTimeout(job.timer); pendingDeletes.splice(pendingDeletes.indexOf(job), 1);
+    ids.forEach(id => hidden.delete(id)); render();
+  });
+}
+function runDelete(job){
+  const i = pendingDeletes.indexOf(job); if (i < 0) return;
+  pendingDeletes.splice(i, 1); clearTimeout(job.timer);
+  if (L.id === job.list){
+    change('pouch_delete_items', { p_ids: job.ids }, () => { L.items = L.items.filter(it => !job.ids.includes(it.id)); })
+      .then(() => job.ids.forEach(id => hidden.delete(id)));
+  } else {
+    rpc('pouch_delete_items', { p_list: job.list, p_pass: job.pass, p_ids: job.ids }).catch(() => {});
+  }
+}
+// Leaving the list or closing the app: carry out waiting deletes right away
+function flushPending(){
+  [...pendingDeletes].forEach(runDelete);
+  for (const [id, t] of deleting){
+    clearTimeout(t); deleting.delete(id); just.delete(id);
+    if (L.id) rpc('pouch_set_done', { p_list:L.id, p_pass:L.pass, p_item:id, p_done:true, p_device:deviceId() }).catch(() => {});
+  }
+}
+window.addEventListener('pagehide', flushPending);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushPending(); });
 function removeItem(id){
-  if (id.startsWith('tmp-')) return;
-  const it = L.items.find(i => i.id === id);
-  change('pouch_delete_item', { p_item:id }, () => { L.items = L.items.filter(i => i.id !== id); });
+  const it = L.items.find(i => i.id === id); if (!it) return;
+  deleteLater([id], `${it.text} deleted`);
 }
 function flash(id){
   const li = document.querySelector(`li[data-id="${CSS.escape(id)}"]`); if (!li) return;
@@ -591,6 +671,15 @@ function itemLi(it){
   tog.setAttribute('aria-pressed', String(!!it.done));
   tog.innerHTML = `<span class="box">${CHECK}</span>`;
   const t = document.createElement('span'); t.className = 'txt'; t.textContent = it.text; tog.append(t);
+  // Initial of whoever added it (or crossed it off), once more than one person uses the list
+  const byDev = it.done ? (it.done_by || it.added_by) : it.added_by;
+  const by = L.members.length > 1 && byDev && L.members.find(m => m.device === byDev);
+  if (by){
+    const w = document.createElement('span'); w.className = 'who';
+    w.style.background = avColor(by.device); w.textContent = (by.name.trim()[0] || '?').toUpperCase();
+    w.title = (it.done && it.done_by ? 'Crossed off by ' : 'Added by ') + by.name;
+    w.setAttribute('aria-label', w.title); tog.append(w);
+  }
   tog.addEventListener('click', () => toggle(it.id));
   const q = document.createElement('button'); q.type = 'button';
   const qv = it.qty || '1';
@@ -607,8 +696,9 @@ function render(){
   if (!L.id) return;
   $('#listName').textContent = L.name || '…';
   document.title = (L.name ? L.name + ' · ' : '') + 'Pouch';
-  const active = L.items.filter(i => !i.done || just.has(i.id) || deleting.has(i.id));
-  const done = L.items.filter(i => i.done && !just.has(i.id) && !deleting.has(i.id))
+  const visible = L.items.filter(i => !hidden.has(i.id));
+  const active = visible.filter(i => !i.done || just.has(i.id) || deleting.has(i.id));
+  const done = visible.filter(i => i.done && !just.has(i.id) && !deleting.has(i.id))
                       .sort((a,b) => (b.done_at || '').localeCompare(a.done_at || ''));
   if (!editingQty){
     $('#activeList').replaceChildren(...active.map(itemLi));
@@ -641,6 +731,7 @@ function render(){
   renderChips();
 }
 const AV_COLORS = ['#2E6A4E','#A0522D','#6A4C93','#1F6F8B','#B5651D','#7A3E48','#4F6D3A','#3D5A80'];
+function avColor(device){ let h = 0; for (const c of device) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
 function renderPeople(){
   const box = $('#people'); box.textContent = '';
   const me = deviceId();
@@ -651,8 +742,7 @@ function renderPeople(){
     el.className = 'person';
     if (mine){ el.type = 'button'; el.setAttribute('aria-label', 'Change your name'); el.addEventListener('click', () => { $('#nameForm').hidden = false; $('#myName').value = myName(); $('#myName').focus(); }); }
     const av = document.createElement('span'); av.className = 'av' + (L.online.has(p.device) ? ' on' : '');
-    let h = 0; for (const c of p.device) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    av.style.background = AV_COLORS[h % AV_COLORS.length];
+    av.style.background = avColor(p.device);
     av.textContent = (p.name.trim()[0] || '?').toUpperCase();
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
     el.append(av, nm);
@@ -691,7 +781,16 @@ function renderChips(){
 $('#addForm').addEventListener('submit', e => {
   e.preventDefault();
   const v = $('#entry').value; if (!norm(v)) return;
-  addItem(v); $('#entry').value = ''; renderChips(); $('#entry').focus();
+  const parts = splitItems(v);
+  if (parts.length > 1) addMany(parts); else addItem(v);
+  $('#entry').value = ''; renderChips(); $('#entry').focus();
+});
+// Pasting several lines adds them all at once
+$('#entry').addEventListener('paste', e => {
+  const t = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+  if (!/[\n\r]/.test(t.trim())) return;
+  e.preventDefault();
+  addMany(splitItems(t)); $('#entry').value = ''; renderChips();
 });
 $('#entry').addEventListener('input', renderChips);
 $('#pileToggle').addEventListener('click', () => { pileOpen = !pileOpen; render(); });
@@ -704,7 +803,8 @@ $('#clearBtn').addEventListener('click', () => {
     clearArmT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Clear'; }, 3000); return;
   }
   clearTimeout(clearArmT); b.classList.remove('armed'); b.textContent = 'Clear';
-  change('pouch_clear_done', {}, () => { L.items = L.items.filter(i => !i.done || deleting.has(i.id)); });
+  const ids = L.items.filter(i => i.done && !deleting.has(i.id) && !hidden.has(i.id)).map(i => i.id);
+  deleteLater(ids, `Cleared ${ids.length} item${ids.length > 1 ? 's' : ''}`);
 });
 
 $('#menuBtn').addEventListener('click', () => {
@@ -726,6 +826,43 @@ $('#modeDelete').addEventListener('click', () => {
     setTimeout(() => { delete $('#modeDelete').dataset.armed; render(); }, 4000); return;
   }
   delete $('#modeDelete').dataset.armed; setMode('delete');
+});
+$('#menuBtn').addEventListener('click', () => { $('#renameInput').value = L.name; $('#passInput').value = ''; });
+$('#renameForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = norm($('#renameInput').value); if (!n || n === L.name) return;
+  change('pouch_rename', { p_name:n }, () => { L.name = n; });
+  toast('List renamed');
+});
+$('#passForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const np = $('#passInput').value;
+  if (np.length < 4){ toast('Use at least 4 characters'); return; }
+  const id = L.id;
+  try {
+    const s = await rpc('pouch_set_password', { p_list:id, p_pass:L.pass, p_new:np });
+    if (L.id !== id) return;
+    L.pass = np; saveList(id, np, s.name); apply(s);
+    $('#passInput').value = '';
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    toast('Password changed. Share the list again to let people back in.');
+  } catch { toast('Couldn’t change the password. Check your connection.'); }
+});
+let delArmT;
+$('#deleteListBtn').addEventListener('click', async () => {
+  const b = $('#deleteListBtn');
+  if (!b.classList.contains('armed')){
+    b.classList.add('armed'); b.textContent = 'Tap again to delete the list and all its items';
+    delArmT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete list for everyone'; }, 4000); return;
+  }
+  clearTimeout(delArmT); b.classList.remove('armed'); b.textContent = 'Delete list for everyone';
+  const id = L.id, pass = L.pass;
+  try {
+    await rpc('pouch_delete_list', { p_list:id, p_pass:pass });
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    pendingDeletes.length = 0; hidden.clear();
+    forgetLocal(id); location.hash = ''; toast('List deleted');
+  } catch { toast('Couldn’t delete the list. Check your connection.'); }
 });
 $('#forgetListBtn').addEventListener('click', () => {
   forgetLocal(L.id); location.hash = ''; toast('Removed from this phone. The list itself is still there.');
