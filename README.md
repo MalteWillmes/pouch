@@ -1,4 +1,4 @@
-# Pouch – shared lists
+# Pouch – shared topics and lists
 
 A small web app for shared lists. Each list has its own link and password. Tap an item to cross it off, and everyone with the list open sees the change straight away. Lists remember what was typed before and suggest it again.
 
@@ -43,8 +43,12 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 
 ## Using it
 
-- **New list:** type a name and a password on the start page.
-- **Share:** tap the share icon. The link includes the password, so whoever taps it gets straight in and their phone remembers the list.
+- **Topics and lists:** a *topic* (e.g. "Shopping") is what you share: it has the link and password, the people, the categories and everything the app remembers. Inside a topic you make *lists*, e.g. one per shopping trip.
+- **New topic:** type your name, a topic name and a password on the start page. Its first list (named with today's date) opens straight away.
+- **New list:** on the topic screen tap **+ New list**. It's named with today's date (rename it if you like). If the newest list still has unbought items, you can move them over (on by default).
+- **History:** a list where everything is crossed off moves to **History** on the topic screen automatically, showing what was bought on that trip. Open it any time; adding something or bringing an item back reopens it.
+- **List menu (⋯ on a list):** rename or delete the list, open Categories, or jump to the topic's settings.
+- **Share:** tap the share icon. The link includes the password, so whoever taps it gets straight into the topic's newest list, and their phone remembers the topic.
 - **Add several at once:** separate items with commas, like `2 milk, bread, 200g cheese`, or paste a list with one item per line.
 - **Cross off:** tap an item. Tap a crossed-off item to bring it back.
 - **Amounts:** type them in front of the item, like `2 milk`, `200g blueberries` or `three apples`. Items without an amount get 1. Tap the amount on an item to change it.
@@ -55,11 +59,11 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 - **Sorting:** the small **Sort** menu above the list sorts open items by category (default), A–Z, by person (A–Z by name), or by time added. The choice is shared: changing it changes the order for everyone on the list.
 - **Copy list:** the **Copy list** button above the list copies the open items as plain text (list name, then one `- 2 milk` line per item) so you can paste it into a text message. It follows the current sort, and if a category filter is on, only that category is copied.
 - **Suggestions:** as you type, earlier items from that list show up as chips. With the box empty, the most-used items show. Tap × on a chip to forget it.
-- **Crossed-off items (⋯ menu):**
-  - **Hide it** (default): crossed-off items go into a pile at the bottom, hidden until you tap **Show**. **Clear** deletes the pile.
-  - **Delete it:** crossed-off items are deleted after about 3 seconds, with an **Undo** button.
-- **List settings (⋯ menu):** rename the list, change its password, or delete it for everyone. Changing the password locks everyone else out until you share the list again with the new link; it's also the way to remove someone's access.
-- **Remove from this phone (⋯ menu):** takes the list off your start page. The list itself stays, and the share link still works.
+- **Crossed-off items (topic ⋯ menu):**
+  - **Hide it** (default): crossed-off items stay at the bottom of their list (and in History). **Clear** deletes them.
+  - **Delete it:** crossed-off items are deleted after about 3 seconds, with an **Undo** button, so lists keep no history.
+- **Topic settings (⋯ on the topic screen):** rename the topic, change its password, or delete it for everyone. Changing the password locks everyone else out until you share the list again with the new link; it's also the way to remove someone's access.
+- **Remove from this phone (topic ⋯ menu):** takes the topic off your start page. The topic itself stays, and the share link still works.
 
 ## Good to know
 

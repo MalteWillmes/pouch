@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>const APP_VERSION = "20261007122122";</script>
-<script src="categories.js?v=20261007122122"></script>
+<script>const APP_VERSION = "20261007190556";</script>
+<script src="categories.js?v=20261007190556"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -77,7 +77,7 @@ input:focus{border-color:var(--gum)}
 .hero p{margin:4px 0 0;color:var(--muted)}
 .lists{display:flex;flex-direction:column;gap:8px;list-style:none;margin:0;padding:0}
 .lists button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font:600 20px var(--display)}
-.lists button span:last-child{color:var(--muted);font:400 22px var(--body)}
+.lists button > span:last-child{color:var(--muted);font:400 22px var(--body)}
 
 /* add bar */
 .addbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;margin-block:-8px;display:flex;flex-direction:column;gap:10px}
@@ -181,6 +181,20 @@ input.catname:focus{border-color:var(--gum);background:var(--bg)}
 .menurow{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left}
 .menurow span:last-child{color:var(--muted);font-weight:400}
 
+/* topic overview */
+.sechead{font:700 13px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.lists button .lname{display:flex;flex-direction:column;min-width:0}
+.lists button .lname b{font-weight:600;overflow-wrap:anywhere}
+.lists button .meta{font:400 14px var(--body);color:var(--muted);margin-top:2px}
+.lists.hist button{background:transparent;border-style:dashed;font-size:18px;padding-block:12px}
+.newlist{display:flex;flex-direction:column;gap:12px}
+.check{display:flex;align-items:flex-start;gap:10px;font-size:15px;line-height:1.35}
+.check input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--gum);flex:none}
+.row2{display:flex;gap:8px}
+.row2 .btn{flex:1}
+#nameSlotT:empty{display:none}
+.note{margin:0;padding:12px 14px;border-radius:14px;background:var(--gum-soft);color:var(--ink);font-size:15px}
+
 /* settings sheet */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--bg)}
@@ -231,49 +245,44 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 <main class="wrap" id="vHome" hidden>
   <div class="hero"><span data-joey="big"></span><div><h1>Pouch</h1><p>Shared lists.</p></div></div>
   <section class="field" id="myListsSec">
-    <label>Your lists</label>
+    <label>Your topics</label>
     <ul class="lists" id="myLists"></ul>
   </section>
   <form class="card" id="newForm" autocomplete="off">
-    <h2>New list</h2>
-    <div class="field"><label for="myNameNew">Your name</label><input id="myNameNew" type="text" maxlength="40" placeholder="So others know who's on the list" required autocomplete="given-name"></div>
-    <div class="field"><label for="newName">List name</label><input id="newName" type="text" maxlength="60" placeholder="Groceries" required></div>
+    <h2>New topic</h2>
+    <div class="field"><label for="myNameNew">Your name</label><input id="myNameNew" type="text" maxlength="40" placeholder="So others know who's in the topic" required autocomplete="given-name"></div>
+    <div class="field"><label for="newName">Topic name</label><input id="newName" type="text" maxlength="60" placeholder="Shopping" required></div>
     <div class="field"><label for="newPass">Password</label><input id="newPass" type="text" minlength="4" maxlength="64" placeholder="At least 4 characters" required autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="field"><label for="newCats">Categories</label><select id="newCats"></select></div>
-    <p class="hint">Anyone with the link and this password can see and change the list.</p>
+    <p class="hint">A topic holds your lists, e.g. one per shopping trip. Anyone with the link and this password can see and change everything in it.</p>
     <p class="err" id="newErr" hidden></p>
-    <button class="btn" id="newBtn" type="submit">Create list</button>
+    <button class="btn" id="newBtn" type="submit">Create topic</button>
   </form>
 </main>
 
 <!-- Password gate -->
 <main class="wrap" id="vGate" hidden>
-  <div class="top"><button class="iconbtn" type="button" data-home aria-label="All lists"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+  <div class="top"><button class="iconbtn" type="button" data-home aria-label="All topics"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
   <form class="card" id="gateForm" autocomplete="off">
     <span data-joey="big"></span>
-    <h2>This list has a password</h2>
+    <h2>This topic has a password</h2>
     <div class="field"><label for="gatePass">Password</label><input id="gatePass" type="password" required autocapitalize="off"></div>
     <p class="err" id="gateErr" hidden></p>
-    <button class="btn" id="gateBtn" type="submit">Open list</button>
+    <button class="btn" id="gateBtn" type="submit">Open</button>
   </form>
 </main>
 
-<!-- List -->
-<main class="wrap" id="vList" hidden>
+<!-- Topic: its lists and history -->
+<main class="wrap" id="vTopic" hidden>
   <div class="top">
-    <button class="iconbtn" type="button" data-home aria-label="All lists"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <h1 id="listName">…</h1>
-    <button class="iconbtn" type="button" id="shareBtn" aria-label="Share list"><svg viewBox="0 0 20 20"><path d="M10 12.5V3m0 0L6.5 6.5M10 3l3.5 3.5M5 9.5H4v7.5h12V9.5h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button class="iconbtn" type="button" id="menuBtn" aria-label="List settings" aria-expanded="false"><svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.7" fill="currentColor"/><circle cx="10" cy="10" r="1.7" fill="currentColor"/><circle cx="15.5" cy="10" r="1.7" fill="currentColor"/></svg></button>
+    <button class="iconbtn" type="button" data-home aria-label="All topics"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <h1 id="topicName">…</h1>
+    <button class="iconbtn" type="button" id="shareBtnT" aria-label="Share topic"><svg viewBox="0 0 20 20"><path d="M10 12.5V3m0 0L6.5 6.5M10 3l3.5 3.5M5 9.5H4v7.5h12V9.5h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="iconbtn" type="button" id="menuBtn" aria-label="Topic settings" aria-expanded="false"><svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.7" fill="currentColor"/><circle cx="10" cy="10" r="1.7" fill="currentColor"/><circle cx="15.5" cy="10" r="1.7" fill="currentColor"/></svg></button>
   </div>
-  <div class="sub"><span id="createdText"></span><span id="createdSep" hidden>·</span><span class="dot" id="dot"></span><span id="subText">Loading…</span></div>
-  <div class="people" id="people" aria-label="People on this list"></div>
-
-  <form class="namecard" id="nameForm" autocomplete="off" hidden>
-    <label for="myName">What's your name? Everyone on this list will see it.</label>
-    <div class="addrow"><input id="myName" type="text" maxlength="40" placeholder="Your name" autocomplete="given-name"><button class="btn" type="submit">Save</button></div>
-  </form>
-
+  <div class="sub"><span id="topicSub"></span><span class="dot" id="dotT"></span></div>
+  <div class="people" id="peopleT" aria-label="People in this topic"></div>
+  <div id="nameSlotT"></div>
   <section class="sheet" id="sheet" hidden>
     <div class="row">
       <span class="label">When an item is crossed off</span>
@@ -290,17 +299,55 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
       <div class="sharebox" id="shareBox"></div>
     </div>
     <form class="row" id="renameForm" autocomplete="off">
-      <label class="label" for="renameInput">List name</label>
+      <label class="label" for="renameInput">Topic name</label>
       <div class="inline"><input id="renameInput" type="text" maxlength="60" required><button class="btn" type="submit">Rename</button></div>
     </form>
     <form class="row" id="passForm" autocomplete="off">
       <label class="label" for="passInput">Change password</label>
-      <p class="hint">Everyone else is locked out until you share the list again with the new link.</p>
+      <p class="hint">Everyone else is locked out until you share the topic again with the new link.</p>
       <div class="inline"><input id="passInput" type="text" minlength="4" maxlength="64" placeholder="New password" required autocapitalize="off" autocorrect="off" spellcheck="false"><button class="btn" type="submit">Change</button></div>
     </form>
     <button class="btn ghost" type="button" id="forgetListBtn">Remove from this phone</button>
-    <button class="btn danger" type="button" id="deleteListBtn">Delete list for everyone</button>
+    <button class="btn danger" type="button" id="deleteListBtn">Delete topic for everyone</button>
   </section>
+  <section class="card newlist" id="newListCard">
+    <button class="btn" type="button" id="newListBtn">+ New list</button>
+    <form class="newlist" id="newListForm" autocomplete="off" hidden>
+      <div class="field"><label for="newListName">List name</label><input id="newListName" type="text" maxlength="40"></div>
+      <label class="check" id="moveWrap"><input type="checkbox" id="moveOpen" checked><span id="moveLabel"></span></label>
+      <div class="row2"><button class="btn ghost" type="button" id="newListCancel">Cancel</button><button class="btn" type="submit" id="newListCreate">Create</button></div>
+    </form>
+  </section>
+  <section id="activeSec" hidden><h2 class="sechead">Lists</h2><ul class="lists" id="activeLists"></ul></section>
+  <section id="historySec" hidden><h2 class="sechead">History</h2><ul class="lists hist" id="historyLists"></ul><button class="link" type="button" id="historyMore" hidden>Show all</button></section>
+</main>
+
+<!-- List -->
+<main class="wrap" id="vList" hidden>
+  <div class="top">
+    <button class="iconbtn" type="button" id="listBack" aria-label="Back to the topic"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <h1 id="listName">…</h1>
+    <button class="iconbtn" type="button" id="shareBtn" aria-label="Share topic"><svg viewBox="0 0 20 20"><path d="M10 12.5V3m0 0L6.5 6.5M10 3l3.5 3.5M5 9.5H4v7.5h12V9.5h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="iconbtn" type="button" id="listMenuBtn" aria-label="List settings" aria-expanded="false"><svg viewBox="0 0 20 20"><circle cx="4.5" cy="10" r="1.7" fill="currentColor"/><circle cx="10" cy="10" r="1.7" fill="currentColor"/><circle cx="15.5" cy="10" r="1.7" fill="currentColor"/></svg></button>
+  </div>
+  <div class="sub"><span id="createdText"></span><span id="createdSep" hidden>·</span><span class="dot" id="dot"></span><span id="subText">Loading…</span></div>
+  <div class="people" id="people" aria-label="People on this list"></div>
+
+  <p class="note" id="finishedNote" hidden>Everything is crossed off, so this list is now in History. Add something or bring back an item to reopen it.</p>
+  <section class="sheet" id="listSheet" hidden>
+    <form class="row" id="listRenameForm" autocomplete="off">
+      <label class="label" for="listRenameInput">List name</label>
+      <div class="inline"><input id="listRenameInput" type="text" maxlength="40" required><button class="btn" type="submit">Rename</button></div>
+    </form>
+    <button class="btn ghost menurow" type="button" id="catsBtn2"><span>Categories</span><span id="catsCount2"></span></button>
+    <button class="btn ghost menurow" type="button" id="topicSettingsBtn"><span>Topic settings</span><span>›</span></button>
+    <button class="btn danger" type="button" id="deleteSubBtn">Delete this list</button>
+  </section>
+  <form class="namecard" id="nameForm" autocomplete="off" hidden>
+    <label for="myName">What's your name? Everyone in this topic will see it.</label>
+    <div class="addrow"><input id="myName" type="text" maxlength="40" placeholder="Your name" autocomplete="given-name"><button class="btn" type="submit">Save</button></div>
+  </form>
+
 
   <div class="addbar">
     <form class="addrow" id="addForm" autocomplete="off">
@@ -343,10 +390,10 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 <!-- Categories -->
 <main class="wrap" id="vCats" hidden>
   <div class="top">
-    <button class="iconbtn" type="button" id="catsBack" aria-label="Back to the list"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="iconbtn" type="button" id="catsBack" aria-label="Back"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <h1>Categories</h1>
   </div>
-  <p class="hint" id="catsHint">The list follows this order. Drag ⠿ to move a category, tap a name to rename it.</p>
+  <p class="hint" id="catsHint">Lists follow this order. Drag ⠿ to move a category, tap a name to rename it.</p>
   <ul class="catlist" id="catList"></ul>
   <form class="addrow" id="catAddForm" autocomplete="off">
     <input id="catNew" type="text" maxlength="30" placeholder="New category" aria-label="New category">
@@ -376,7 +423,7 @@ document.querySelectorAll('[data-joey]').forEach(el => {
   if (el.dataset.joey === 'big') svg.classList.add('big');
   el.replaceWith(svg);
 });
-function show(view){ for (const v of ['vSetup','vHome','vGate','vList','vCats']) $('#'+v).hidden = v !== view; window.scrollTo(0,0); }
+function show(view){ for (const v of ['vSetup','vHome','vGate','vTopic','vList','vCats']) $('#'+v).hidden = v !== view; window.scrollTo(0,0); }
 
 let toastTimer, toastUndo = null;
 function toast(msg, undo){
@@ -419,16 +466,20 @@ function route(){
   if (!sb){ show('vSetup'); return; }
   const h = decodeURIComponent(location.hash.slice(1));
   if (!h){ leaveList(); renderHome(); show('vHome'); return; }
+  // #topic  (newest list)   #topic.  (the topic's lists)   #topic.<list>   #topic/<password>  (share link)
   const slash = h.indexOf('/');
-  const id = slash < 0 ? h : h.slice(0, slash);
+  const head = slash < 0 ? h : h.slice(0, slash);
   const passInLink = slash < 0 ? null : h.slice(slash + 1);
+  const dot = head.indexOf('.');
+  const id = dot < 0 ? head : head.slice(0, dot);
+  const sub = dot < 0 ? undefined : head.slice(dot + 1);
   if (passInLink){
     saveList(id, passInLink, (saved().find(l => l.id === id) || {}).name);
     history.replaceState(null, '', '#' + id);   // keep the password out of the address bar
   }
   const pass = passInLink || passFor(id);
   if (!pass){ leaveList(); showGate(id); return; }
-  openList(id, pass);
+  openList(id, pass, null, sub);
 }
 window.addEventListener('hashchange', route);
 document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', () => { location.hash = ''; }));
@@ -443,7 +494,7 @@ function renderHome(){
   for (const l of all){
     const li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button';
-    const n = document.createElement('span'); n.textContent = l.name || 'Untitled list';
+    const n = document.createElement('span'); n.textContent = l.name || 'Untitled topic';
     const a = document.createElement('span'); a.textContent = '›';
     b.append(n, a); b.addEventListener('click', () => { location.hash = l.id; });
     li.append(b); ul.append(li);
@@ -463,7 +514,9 @@ $('#newForm').addEventListener('submit', async e => {
     try { await importCats(id, pass, choice); }
     catch { toast('The list was made, but its categories couldn’t be added. Add them under ⋯ → Categories.'); }
     $('#newName').value = ''; $('#newPass').value = '';
-    location.hash = id;
+    let first = null;
+    try { first = (await rpc('pouch_sub_create', { p_list:id, p_pass:pass, p_name:dayLabel(new Date()), p_move_from:null })).new_list; } catch {}
+    location.hash = id + '.' + (first || '');
   } catch {
     $('#newErr').textContent = 'Couldn’t create the list. Check your connection and try again.'; $('#newErr').hidden = false;
   } finally { $('#newBtn').disabled = false; }
@@ -492,21 +545,52 @@ $('#gateForm').addEventListener('submit', async e => {
 });
 
 /* ================= list state ================= */
-const L = { id:null, pass:null, name:'', mode:'hide', created:null, items:[], memory:[], members:[], cats:[], online:new Set(), pending:0, channel:null, poll:null };
+const L = { id:null, pass:null, name:'', mode:'hide', created:null, sub:null, lists:[], old:{}, items:[], memory:[], members:[], cats:[], online:new Set(), pending:0, channel:null, poll:null };
 const just = new Set();          // ids that were crossed off a moment ago (stay in place briefly)
 const deleting = new Map();      // id -> timer, for delete mode with undo
 
-async function openList(id, pass, snap){
+async function openList(id, pass, snap, sub){
   const switching = L.id !== id;
-  if (switching){ leaveList(); L.id = id; L.pass = pass; L.items = []; L.memory = []; L.members = []; L.cats = []; L.created = null; filterCat = null; editingTags = null; L.online = new Set(); $('#createdText').textContent = ''; $('#people').textContent = ''; $('#listName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
-  show('vList');
+  if (switching){ leaveList(); L.id = id; L.pass = pass; L.lists = []; L.old = {}; L.items = []; L.memory = []; L.members = []; L.cats = []; L.created = null; filterCat = null; editingTags = null; L.online = new Set(); $('#createdText').textContent = ''; $('#people').textContent = ''; $('#listName').textContent = '…'; $('#topicName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
+  if (sub && sub !== L.sub) pileOpen = null;   // each list starts with its default: closed, or open when finished
+  if (sub) { L.sub = sub; show('vList'); } else if (sub === '') { L.sub = null; show('vTopic'); }
+  closeSheets();
   try {
     apply(snap || await rpc('pouch_open', { p_list: id, p_pass: pass }));
   } catch (err) {
     if (err.wrong){ forgetLocal(id); leaveList(); showGate(id, true); return; }
     $('#subText').textContent = 'Offline. Retrying…';
   }
+  if (L.id !== id) return;
+  // no list given (e.g. a share link): go to the newest list that still has things on it
+  if (sub === undefined){
+    const newest = L.lists.find(x => !x.archived_at);
+    L.sub = newest ? newest.id : null;
+    history.replaceState(null, '', '#' + id + '.' + (L.sub || ''));
+  } else if (sub && !L.lists.some(x => x.id === sub)){
+    L.sub = null; history.replaceState(null, '', '#' + id + '.'); toast('That list has been deleted.');
+  }
+  show(L.sub ? 'vList' : 'vTopic');
+  if (L.sub && !L.items.some(i => i.list === L.sub) && (curList()?.total || 0) > 0) loadOld(L.sub);
+  render();
   if (switching){ connect(); join(); }
+}
+function closeSheets(){
+  $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded', 'false');
+  $('#listSheet').hidden = true; $('#listMenuBtn').setAttribute('aria-expanded', 'false');
+  $('#newListForm').hidden = true; $('#newListBtn').hidden = false;
+}
+const curList = () => L.lists.find(x => x.id === L.sub);
+const curItems = () => L.items.filter(i => i.list === L.sub);
+const dayLabel = d => new Date(d).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
+// Items of an older list from History aren't in the topic snapshot; fetch them when it's opened.
+async function loadOld(sub){
+  try {
+    const items = await rpc('pouch_sub_items', { p_list:L.id, p_pass:L.pass, p_sub:sub });
+    L.old[sub] = items;
+    if (!L.items.some(i => i.list === sub)) L.items = L.items.concat(items);
+    render();
+  } catch {}
 }
 
 /* Put this device on the list's people row (or ask for a name first). */
@@ -548,6 +632,7 @@ function connect(){
            })
            .subscribe(status => {
              $('#dot').classList.toggle('live', status === 'SUBSCRIBED');
+             $('#dotT').classList.toggle('live', status === 'SUBSCRIBED');
              if (status === 'SUBSCRIBED') trackPresence();
            });
   L.poll = setInterval(() => { if (!document.hidden) refreshSoon(); }, 30000);
@@ -565,7 +650,11 @@ function refreshSoon(){
   }, 150);
 }
 function apply(s){
-  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.cats = s.categories || []; L.sort = s.sort_mode || 'cat'; L.created = s.created_at || null;
+  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.cats = s.categories || []; L.sort = s.sort_mode || 'cat'; L.created = s.created_at || null; L.lists = s.lists || [];
+  if (L.sub && L.old[L.sub] && !L.items.some(i => i.list === L.sub)) L.items = L.items.concat(L.old[L.sub]);
+  if (L.sub && L.lists.length && !L.lists.some(x => x.id === L.sub)){
+    L.sub = null; history.replaceState(null, '', '#' + L.id + '.'); show('vTopic'); toast('That list has been deleted.');
+  }
   if (filterCat && !L.cats.some(c => c.id === filterCat)) filterCat = null;
   saveList(L.id, L.pass, L.name);
   render();
@@ -616,16 +705,16 @@ let tmpN = 0;
 function addItem(raw){
   const { qty, text } = parseQty(raw); if (!text) return;
   const k = keyOf(text);
-  const existing = L.items.find(i => keyOf(i.text) === k && !i.done);
-  const pending = L.items.find(i => keyOf(i.text) === k && deleting.has(i.id));
+  const existing = curItems().find(i => keyOf(i.text) === k && !i.done);
+  const pending = curItems().find(i => keyOf(i.text) === k && deleting.has(i.id));
   if (pending){ undoDelete([pending.id]); if (qty && qty !== pending.qty) setQty(pending.id, qty); flash(pending.id); return; }
   if (existing && !deleting.has(existing.id)){
     if (qty && qty !== existing.qty) setQty(existing.id, qty);
     flash(existing.id); return;
   }
   const cats = guessCats(text);
-  change('pouch_add', { p_text: text, p_qty: qty, p_device: deviceId(), p_cats: cats }, () => {
-    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
+  change('pouch_add', { p_text: text, p_qty: qty, p_device: deviceId(), p_cats: cats, p_sub: L.sub }, () => {
+    L.items.push({ id:'tmp-' + (++tmpN), list: L.sub, text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
     const m = L.memory.find(m => m.key === k);
     if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
   });
@@ -662,12 +751,12 @@ function addMany(parts){
   }
   if (!batch.length) return;
   if (batch.length === 1){ addItem((batch[0].qty ? batch[0].qty + ' ' : '') + batch[0].text); return; }
-  change('pouch_add_many', { p_items: batch.slice(0, 50), p_device: deviceId() }, () => {
+  change('pouch_add_many', { p_items: batch.slice(0, 50), p_device: deviceId(), p_sub: L.sub }, () => {
     for (const { text, qty, cats } of batch){
       const k = keyOf(text);
-      const open = L.items.find(i => keyOf(i.text) === k && !i.done);
+      const open = curItems().find(i => keyOf(i.text) === k && !i.done);
       if (open){ if (qty) open.qty = qty; }
-      else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
+      else L.items.push({ id:'tmp-' + (++tmpN), list: L.sub, text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
       const m = L.memory.find(m => m.key === k);
       if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
     }
@@ -751,7 +840,7 @@ function flash(id){
 }
 
 /* ================= rendering ================= */
-let pileOpen = false;
+let pileOpen = null;   // null: closed, or open on a finished list
 function itemLi(it){
   const li = document.createElement('li'); li.dataset.id = it.id;
   if (it.done) li.classList.add('done');
@@ -802,9 +891,20 @@ function itemLi(it){
 }
 function render(){
   if (!L.id) return;
-  $('#listName').textContent = L.name || '…';
-  document.title = (L.name ? L.name + ' · ' : '') + 'Pouch';
-  const visible = L.items.filter(i => !hidden.has(i.id));
+  renderTopic();
+  renderPeople();
+  placeNameForm();
+  $('#catsCount').textContent = $('#catsCount2').textContent = L.cats.length ? String(L.cats.length) : 'Off';
+  if (!$('#vCats').hidden) renderCats();
+  if (L.sub) renderList();
+  else document.title = (L.name ? L.name + ' · ' : '') + 'Pouch';
+}
+function renderList(){
+  const list = curList();
+  $('#listName').textContent = list ? list.name : '…';
+  document.title = (list ? list.name + ' · ' : '') + (L.name || 'Pouch');
+  $('#finishedNote').hidden = !(list && list.archived_at);
+  const visible = curItems().filter(i => !hidden.has(i.id));
   const activeAll = visible.filter(i => !i.done || just.has(i.id) || deleting.has(i.id)).sort(sorter());
   if (filterCat && !activeAll.some(i => !i.done && (i.cats || []).includes(filterCat))) filterCat = null;
   const active = filterCat ? activeAll.filter(i => (i.cats || []).includes(filterCat)) : activeAll;
@@ -823,36 +923,69 @@ function render(){
   $('#sortSel').querySelector('[value="person"]').hidden = L.members.length < 2;
 
   const open = activeAll.filter(i => !i.done).length;
-  $('#empty').hidden = activeAll.length > 0;
+  $('#empty').hidden = activeAll.length > 0 || !!(list && list.archived_at);
   $('#emptyTitle').textContent = done.length ? 'All crossed off' : 'The pouch is empty';
   $('#emptyText').textContent = done.length ? 'Nice work. Add something new above.' : 'Add the first item above. Everyone with the link sees it straight away.';
   $('#pileSec').hidden = done.length === 0;
   $('#pileTitle').textContent = `Crossed off · ${done.length}`;
-  $('#doneList').hidden = !pileOpen;
-  $('#pileToggle').textContent = pileOpen ? 'Hide' : 'Show';
-  $('#pileToggle').setAttribute('aria-expanded', String(pileOpen));
-  $('#subText').textContent = open ? `${open} to get` : 'All done';
+  // finished lists (History) show what was bought straight away
+  const pileShown = pileOpen === null ? !!(list && list.archived_at) : pileOpen;
+  $('#doneList').hidden = !pileShown;
+  $('#pileToggle').textContent = pileShown ? 'Hide' : 'Show';
+  $('#pileToggle').setAttribute('aria-expanded', String(pileShown));
+  $('#subText').textContent = open ? `${open} to get` : (done.length ? 'All done' : 'Empty');
 
+  $('#createdText').textContent = L.name + (list ? ' · ' + dayLabel(list.created_at) : '');
+  $('#createdSep').hidden = false;
+  renderChips();
+}
+/* The topic screen: settings, + New list, open lists, history */
+let historyAll = false;
+function renderTopic(){
+  $('#topicName').textContent = L.name || '…';
   $('#modeHide').setAttribute('aria-pressed', String(L.mode === 'hide'));
   $('#modeDelete').setAttribute('aria-pressed', String(L.mode === 'delete'));
-  $('#modeHint').textContent = L.mode === 'hide'
-    ? 'Crossed-off items move to a hidden pile you can open and clear.'
-    : 'Crossed-off items are deleted after a few seconds. You can undo right after tapping.';
+  if (!$('#modeDelete').dataset.armed) $('#modeHint').textContent = L.mode === 'hide'
+    ? 'Crossed-off items stay on their list (and in History) until you clear them.'
+    : 'Crossed-off items are deleted after a few seconds, so lists keep no history. You can undo right after tapping.';
   $('#shareBox').textContent = shareUrl();
-  if (L.created){
-    const d = new Date(L.created);
-    $('#createdText').textContent = 'Created ' + d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
-  }
-  $('#createdSep').hidden = !L.created;
-  $('#catsCount').textContent = L.cats.length ? String(L.cats.length) : 'Off';
-  renderPeople();
-  renderChips();
-  if (!$('#vCats').hidden) renderCats();
+  const active = L.lists.filter(x => !x.archived_at);
+  const past = L.lists.filter(x => x.archived_at && x.total > 0);
+  $('#topicSub').textContent = (L.created ? 'Created ' + new Date(L.created).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' }) + ' · ' : '')
+    + (active.length === 1 ? '1 open list' : `${active.length} open lists`);
+  const row = (x, meta) => {
+    const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button';
+    const t = document.createElement('span'); t.className = 'lname';
+    const n = document.createElement('b'); n.textContent = x.name;
+    const m = document.createElement('span'); m.className = 'meta'; m.textContent = meta;
+    t.append(n, m);
+    const a = document.createElement('span'); a.textContent = '›';
+    b.append(t, a); b.addEventListener('click', () => { location.hash = L.id + '.' + x.id; });
+    li.append(b); return li;
+  };
+  $('#activeSec').hidden = !active.length;
+  $('#activeLists').replaceChildren(...active.map(x => row(x,
+    (x.open ? `${x.open} left` : 'Empty') + ' · ' + dayLabel(x.created_at))));
+  $('#historySec').hidden = !past.length;
+  const shownPast = historyAll ? past : past.slice(0, 5);
+  $('#historyLists').replaceChildren(...shownPast.map(x => row(x,
+    `${x.total} item${x.total === 1 ? '' : 's'} · finished ${dayLabel(x.archived_at)}`)));
+  $('#historyMore').hidden = historyAll || past.length <= 5;
+  $('#historyMore').textContent = `Show all ${past.length}`;
+}
+// The "what's your name" card sits on whichever screen is showing
+function placeNameForm(){
+  const f = $('#nameForm');
+  if (!$('#vTopic').hidden && f.parentElement !== $('#nameSlotT')) $('#nameSlotT').append(f);
+  if (!$('#vList').hidden && f.parentElement !== $('#vList')) $('#people').after(f);
 }
 const AV_COLORS = ['#2E6A4E','#A0522D','#6A4C93','#1F6F8B','#B5651D','#7A3E48','#4F6D3A','#3D5A80'];
 function avColor(device){ let h = 0; for (const c of device) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
 function renderPeople(){
-  const box = $('#people'); box.textContent = '';
+  renderPeopleInto($('#people')); renderPeopleInto($('#peopleT'));
+}
+function renderPeopleInto(box){
+  box.textContent = '';
   const me = deviceId();
   const ppl = [...L.members].sort((a,b) => (b.device === me) - (a.device === me));
   for (const p of ppl){
@@ -873,7 +1006,7 @@ function renderPeople(){
 function renderChips(){
   const box = $('#chips'); box.textContent = '';
   const q = keyOf($('#entry').value);
-  const onList = new Set(L.items.filter(i => !i.done).map(i => keyOf(i.text)));
+  const onList = new Set(curItems().filter(i => !i.done).map(i => keyOf(i.text)));
   let pool = L.memory.filter(m => m.uses > 0 && !onList.has(m.key));
   let label;
   if (q){
@@ -1035,11 +1168,12 @@ async function importCats(id, pass, choice){
 /* Categories screen */
 let draggingCats = false;
 function openCats(){
-  $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded', 'false');
+  closeSheets();
   show('vCats'); renderCats();
 }
 $('#catsBtn').addEventListener('click', openCats);
-$('#catsBack').addEventListener('click', () => { show('vList'); render(); });
+$('#catsBtn2').addEventListener('click', openCats);
+$('#catsBack').addEventListener('click', () => { show(L.sub ? 'vList' : 'vTopic'); render(); });
 function renderCats(){
   if (draggingCats || document.activeElement?.classList.contains('catname')) return;
   const ul = $('#catList');
@@ -1169,10 +1303,10 @@ checkForUpdate();
 //   - 2 melk
 //   - brød
 function listAsText(){
-  const open = L.items.filter(i => !i.done && !hidden.has(i.id) && !deleting.has(i.id)).sort(sorter());
+  const open = curItems().filter(i => !i.done && !hidden.has(i.id) && !deleting.has(i.id)).sort(sorter());
   const shown = filterCat ? open.filter(i => (i.cats || []).includes(filterCat)) : open;
   const cat = filterCat && L.cats.find(c => c.id === filterCat);
-  const title = L.name + (cat ? ` (${cat.name})` : '');
+  const title = L.name + (curList() ? ' – ' + curList().name : '') + (cat ? ` (${cat.name})` : '');
   return [title, ...shown.map(i => '- ' + (i.qty && i.qty !== '1' ? i.qty + ' ' : '') + i.text)].join('\n');
 }
 $('#copyBtn').addEventListener('click', async () => {
@@ -1204,7 +1338,7 @@ $('#entry').addEventListener('paste', e => {
   addMany(splitItems(t)); $('#entry').value = ''; renderChips();
 });
 $('#entry').addEventListener('input', renderChips);
-$('#pileToggle').addEventListener('click', () => { pileOpen = !pileOpen; render(); });
+$('#pileToggle').addEventListener('click', () => { pileOpen = $('#doneList').hidden; render(); });
 
 let clearArmT;
 $('#clearBtn').addEventListener('click', () => {
@@ -1214,7 +1348,7 @@ $('#clearBtn').addEventListener('click', () => {
     clearArmT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Clear'; }, 3000); return;
   }
   clearTimeout(clearArmT); b.classList.remove('armed'); b.textContent = 'Clear';
-  const ids = L.items.filter(i => i.done && !deleting.has(i.id) && !hidden.has(i.id)).map(i => i.id);
+  const ids = curItems().filter(i => i.done && !deleting.has(i.id) && !hidden.has(i.id)).map(i => i.id);
   deleteLater(ids, `Cleared ${ids.length} item${ids.length > 1 ? 's' : ''}`);
 });
 
@@ -1243,7 +1377,7 @@ $('#renameForm').addEventListener('submit', e => {
   e.preventDefault();
   const n = norm($('#renameInput').value); if (!n || n === L.name) return;
   change('pouch_rename', { p_name:n }, () => { L.name = n; });
-  toast('List renamed');
+  toast('Topic renamed');
 });
 $('#passForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -1256,40 +1390,107 @@ $('#passForm').addEventListener('submit', async e => {
     L.pass = np; saveList(id, np, s.name); apply(s);
     $('#passInput').value = '';
     L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
-    toast('Password changed. Share the list again to let people back in.');
+    toast('Password changed. Share the topic again to let people back in.');
   } catch { toast('Couldn’t change the password. Check your connection.'); }
 });
 let delArmT;
 $('#deleteListBtn').addEventListener('click', async () => {
   const b = $('#deleteListBtn');
   if (!b.classList.contains('armed')){
-    b.classList.add('armed'); b.textContent = 'Tap again to delete the list and all its items';
-    delArmT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete list for everyone'; }, 4000); return;
+    b.classList.add('armed'); b.textContent = 'Tap again to delete the topic and all its lists';
+    delArmT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete topic for everyone'; }, 4000); return;
   }
-  clearTimeout(delArmT); b.classList.remove('armed'); b.textContent = 'Delete list for everyone';
+  clearTimeout(delArmT); b.classList.remove('armed'); b.textContent = 'Delete topic for everyone';
   const id = L.id, pass = L.pass;
   try {
     await rpc('pouch_delete_list', { p_list:id, p_pass:pass });
     L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
     pendingDeletes.length = 0; hidden.clear();
-    forgetLocal(id); location.hash = ''; toast('List deleted');
-  } catch { toast('Couldn’t delete the list. Check your connection.'); }
+    forgetLocal(id); location.hash = ''; toast('Topic deleted');
+  } catch { toast('Couldn’t delete the topic. Check your connection.'); }
 });
 $('#forgetListBtn').addEventListener('click', () => {
-  forgetLocal(L.id); location.hash = ''; toast('Removed from this phone. The list itself is still there.');
+  forgetLocal(L.id); location.hash = ''; toast('Removed from this phone. The topic itself is still there.');
 });
 
 function shareUrl(){
   return location.origin + location.pathname + '#' + L.id + '/' + encodeURIComponent(L.pass);
 }
-$('#shareBtn').addEventListener('click', async () => {
+async function shareTopic(){
   const url = shareUrl();
   if (navigator.share){
-    try { await navigator.share({ title: L.name, text: `Join my list “${L.name}” on Pouch`, url }); return; }
+    try { await navigator.share({ title: L.name, text: `Join “${L.name}” on Pouch`, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
   try { await navigator.clipboard.writeText(url); toast('Link copied, password included'); }
-  catch { $('#sheet').hidden = false; toast('Copy the link from the box'); }
+  catch { location.hash = L.id + '.'; setTimeout(() => { $('#sheet').hidden = false; }, 300); toast('Copy the link from the box'); }
+}
+$('#shareBtn').addEventListener('click', shareTopic);
+$('#shareBtnT').addEventListener('click', shareTopic);
+
+/* ================= lists in a topic ================= */
+$('#listBack').addEventListener('click', () => { location.hash = L.id + '.'; });
+$('#historyMore').addEventListener('click', () => { historyAll = true; render(); });
+$('#newListBtn').addEventListener('click', () => {
+  $('#newListBtn').hidden = true; $('#newListForm').hidden = false;
+  $('#newListName').value = dayLabel(new Date());
+  // offer to bring over what wasn't bought on the newest list that still has things left
+  const src = L.lists.find(x => !x.archived_at && x.open > 0);
+  $('#moveWrap').hidden = !src;
+  $('#moveOpen').checked = true;
+  if (src){ $('#moveWrap').dataset.src = src.id; $('#moveLabel').textContent = `Move the ${src.open} unbought item${src.open === 1 ? '' : 's'} from “${src.name}”`; }
+  $('#newListName').focus(); $('#newListName').select();
+});
+$('#newListCancel').addEventListener('click', () => { $('#newListForm').hidden = true; $('#newListBtn').hidden = false; });
+$('#newListForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = norm($('#newListName').value) || dayLabel(new Date());
+  const from = !$('#moveWrap').hidden && $('#moveOpen').checked ? $('#moveWrap').dataset.src : null;
+  const id = L.id;
+  $('#newListCreate').disabled = true;
+  try {
+    const s = await rpc('pouch_sub_create', { p_list:id, p_pass:L.pass, p_name:name, p_move_from:from });
+    if (L.id !== id) return;
+    apply(s);
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    closeSheets();
+    location.hash = id + '.' + s.new_list;
+  } catch { toast('Couldn’t create the list. Check your connection.'); }
+  finally { $('#newListCreate').disabled = false; }
+});
+$('#listMenuBtn').addEventListener('click', () => {
+  const open = $('#listSheet').hidden; $('#listSheet').hidden = !open;
+  $('#listMenuBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('#listRenameInput').value = curList()?.name || '';
+});
+$('#listRenameForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = norm($('#listRenameInput').value), list = curList();
+  if (!n || !list || n === list.name) return;
+  change('pouch_sub_rename', { p_sub:list.id, p_name:n }, () => { list.name = n; });
+  toast('List renamed');
+});
+$('#topicSettingsBtn').addEventListener('click', () => {
+  location.hash = L.id + '.';
+  setTimeout(() => { $('#sheet').hidden = false; $('#menuBtn').setAttribute('aria-expanded', 'true'); $('#renameInput').value = L.name; }, 50);
+});
+let delSubT;
+$('#deleteSubBtn').addEventListener('click', async () => {
+  const b = $('#deleteSubBtn'), list = curList(); if (!list) return;
+  if (!b.classList.contains('armed')){
+    b.classList.add('armed'); b.textContent = 'Tap again to delete this list and its items';
+    delSubT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete this list'; }, 4000); return;
+  }
+  clearTimeout(delSubT); b.classList.remove('armed'); b.textContent = 'Delete this list';
+  const id = L.id;
+  try {
+    const s = await rpc('pouch_sub_delete', { p_list:id, p_pass:L.pass, p_sub:list.id });
+    if (L.id !== id) return;
+    L.sub = null; history.replaceState(null, '', '#' + id + '.');
+    apply(s); show('vTopic'); render();
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    toast('List deleted');
+  } catch { toast('Couldn’t delete the list. Check your connection.'); }
 });
 
 route();
