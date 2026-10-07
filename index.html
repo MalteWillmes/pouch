@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="categories.js"></script>
+<script>const APP_VERSION = "20261007122122";</script>
+<script src="categories.js?v=20261007122122"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -1135,6 +1136,32 @@ $('#catImportBtn').addEventListener('click', async () => {
   } catch { toast('Couldn’t add them. If you copied from a list, its password may have changed.'); }
   finally { $('#catImportBtn').disabled = false; }
 });
+
+/* ================= updates ================= */
+// When a new version is published, phones that keep Pouch open (tabs, home-screen app)
+// reload into it the next time it's safe: on returning to the app, or every few minutes.
+let updateTo = null;
+async function checkForUpdate(){
+  if (APP_VERSION === 'dev') return;
+  try {
+    const r = await fetch('version.txt?t=' + Date.now(), { cache:'no-store' });
+    if (!r.ok) return;
+    const v = (await r.text()).trim();
+    if (v && v !== APP_VERSION) { updateTo = v; updateIfSafe(); }
+  } catch {}
+}
+function updateIfSafe(){
+  if (!updateTo || document.hidden) return;
+  const busy = L.pending || pendingDeletes.length || deleting.size || editingQty || editingTags || draggingCats
+    || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+  if (busy){ setTimeout(updateIfSafe, 5000); return; }
+  // reload at most once per version, in case the new files haven't reached every server yet
+  try { if (sessionStorage.getItem('pouch.updatedTo') === updateTo) return; sessionStorage.setItem('pouch.updatedTo', updateTo); } catch {}
+  location.replace(location.pathname + '?v=' + encodeURIComponent(updateTo) + location.hash);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+setInterval(checkForUpdate, 5 * 60 * 1000);
+checkForUpdate();
 
 /* ================= copy as text ================= */
 // The open items in the order shown (and only the chosen category when filtered), e.g.
