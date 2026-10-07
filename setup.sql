@@ -330,6 +330,269 @@ grant execute on function
   public.pouch_delete_list(text, text)
 to anon, authenticated;
 
+-- ---------- Categories (tags) ----------
+-- Each list has its own categories. Items and remembered words carry a set of them.
+create table if not exists public.categories (
+  id         uuid primary key default gen_random_uuid(),
+  list_id    text not null references public.lists(id) on delete cascade,
+  name       text not null check (char_length(name) between 1 and 30),
+  key        text,                       -- starter category it came from (used for automatic tagging)
+  pos        int  not null default 0,    -- order; also the order of items on the list
+  created_at timestamptz not null default now()
+);
+create unique index if not exists categories_name_idx on public.categories (list_id, lower(name));
+alter table public.categories enable row level security;
+alter table public.items  add column if not exists cats uuid[] not null default '{}';
+alter table public.memory add column if not exists cats uuid[] not null default '{}';
+
+-- Keep only ids that belong to this list, in category order
+create or replace function pouch_private.valid_cats(p_list text, p_cats uuid[])
+returns uuid[]
+language sql stable security definer set search_path = public as $$
+  select coalesce(array_agg(c.id order by c.pos, c.created_at), '{}')
+  from public.categories c
+  where c.list_id = p_list and c.id = any(coalesce(p_cats, '{}'::uuid[]))
+$$;
+
+create or replace function pouch_private.snapshot(p_list text)
+returns json
+language sql security definer set search_path = public as $$
+  select json_build_object(
+    'id', l.id,
+    'name', l.name,
+    'done_mode', l.done_mode,
+    'created_at', l.created_at,
+    'categories', coalesce((
+      select json_agg(json_build_object('id', c.id, 'name', c.name, 'key', c.key, 'pos', c.pos)
+        order by c.pos, c.created_at)
+      from public.categories c where c.list_id = l.id), '[]'::json),
+    'items', coalesce((
+      select json_agg(json_build_object(
+        'id', i.id, 'text', i.text, 'qty', i.qty, 'done', i.done, 'cats', i.cats,
+        'created_at', i.created_at, 'done_at', i.done_at,
+        'added_by', i.added_by, 'done_by', i.done_by) order by i.created_at)
+      from public.items i where i.list_id = l.id), '[]'::json),
+    'memory', coalesce((
+      select json_agg(json_build_object('key', m.key, 'label', m.label, 'uses', m.uses, 'cats', m.cats)
+        order by m.uses desc, m.last_used desc)
+      from (select * from public.memory where list_id = l.id
+            order by uses desc, last_used desc limit 500) m), '[]'::json),
+    'members', coalesce((
+      select json_agg(json_build_object('device', p.device_id, 'name', p.name,
+        'joined_at', p.joined_at, 'last_seen', p.last_seen) order by p.joined_at)
+      from public.members p where p.list_id = l.id), '[]'::json)
+  ) from public.lists l where l.id = p_list
+$$;
+
+-- Adds one item. Tags: what this list remembers for the word wins; otherwise the page's guess.
+create or replace function pouch_private.add_one(p_list text, p_text text, p_qty text, p_device text, p_cats uuid[])
+returns void
+language plpgsql security definer set search_path = public as $$
+declare t text := left(regexp_replace(trim(coalesce(p_text, '')), '\s+', ' ', 'g'), 120);
+        k text := lower(t);
+        q text := nullif(left(trim(coalesce(p_qty, '')), 20), '');
+        d text := nullif(left(coalesce(p_device, ''), 64), '');
+        remembered uuid[];
+        c uuid[];
+        existing public.items;
+begin
+  if t = '' then return; end if;
+  insert into public.memory (list_id, key, label) values (p_list, k, t)
+  on conflict (list_id, key) do update
+    set uses = public.memory.uses + 1, last_used = now()
+  returning cats into remembered;
+  c := pouch_private.valid_cats(p_list, remembered);
+  if cardinality(c) = 0 then c := pouch_private.valid_cats(p_list, p_cats); end if;
+
+  -- Already on the list and not crossed off? Just update its amount.
+  select * into existing from public.items
+   where list_id = p_list and lower(text) = k and not done limit 1;
+  if existing.id is not null then
+    update public.items
+       set qty = coalesce(q, existing.qty),
+           cats = case when cardinality(existing.cats) = 0 then c else existing.cats end
+     where id = existing.id;
+  else
+    -- clock_timestamp keeps the typed order when several items are added at once
+    insert into public.items (list_id, text, qty, added_by, cats, created_at) values (p_list, t, coalesce(q, '1'), d, c, clock_timestamp());
+  end if;
+end $$;
+
+create or replace function pouch_private.add_one(p_list text, p_text text, p_qty text, p_device text)
+returns void
+language sql security definer set search_path = public as $$
+  select pouch_private.add_one(p_list, p_text, p_qty, p_device, null)
+$$;
+
+create or replace function public.pouch_add(p_list text, p_pass text, p_text text, p_qty text, p_device text, p_cats uuid[])
+returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if trim(coalesce(p_text, '')) = '' then raise exception 'empty_item'; end if;
+  perform pouch_private.add_one(p_list, p_text, p_qty, p_device, p_cats);
+  return pouch_private.snapshot(p_list);
+end $$;
+
+create or replace function public.pouch_add(p_list text, p_pass text, p_text text, p_qty text, p_device text)
+returns json
+language sql security definer set search_path = public as $$
+  select public.pouch_add(p_list, p_pass, p_text, p_qty, p_device, null)
+$$;
+
+-- p_items: [{"text": "...", "qty": "...", "cats": ["<uuid>", ...]}, ...] (max 50)
+create or replace function public.pouch_add_many(p_list text, p_pass text, p_items json, p_device text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare e json; c uuid[];
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  for e in select value from json_array_elements(p_items) limit 50 loop
+    c := null;
+    if json_typeof(e->'cats') = 'array' then
+      select array_agg(x::uuid) into c
+        from json_array_elements_text(e->'cats') x
+       where x ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+    end if;
+    perform pouch_private.add_one(p_list, e->>'text', e->>'qty', p_device, c);
+  end loop;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- Set an item's tags; the list remembers them for next time.
+create or replace function public.pouch_set_cats(p_list text, p_pass text, p_item uuid, p_cats uuid[])
+returns json
+language plpgsql security definer set search_path = public as $$
+declare c uuid[]; k text;
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  c := pouch_private.valid_cats(p_list, p_cats);
+  update public.items set cats = c where id = p_item and list_id = p_list returning lower(text) into k;
+  if k is not null then
+    update public.memory set cats = c where list_id = p_list and key = k;
+  end if;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- New category (at the end). With p_item, also tags that item with it.
+create or replace function public.pouch_cat_add(p_list text, p_pass text, p_name text, p_item uuid)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare n text := left(regexp_replace(trim(coalesce(p_name, '')), '\s+', ' ', 'g'), 30);
+        cid uuid; cur uuid[];
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if n = '' then raise exception 'empty_name'; end if;
+  select id into cid from public.categories where list_id = p_list and lower(name) = lower(n);
+  if cid is null then
+    insert into public.categories (list_id, name, pos)
+    values (p_list, n, coalesce((select max(pos) + 1 from public.categories where list_id = p_list), 0))
+    returning id into cid;
+  end if;
+  if p_item is not null then
+    select cats into cur from public.items where id = p_item and list_id = p_list;
+    if cur is not null and not (cid = any(cur)) then
+      perform public.pouch_set_cats(p_list, p_pass, p_item, cur || cid);
+    end if;
+  end if;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+create or replace function public.pouch_cat_rename(p_list text, p_pass text, p_cat uuid, p_name text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare n text := left(regexp_replace(trim(coalesce(p_name, '')), '\s+', ' ', 'g'), 30);
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if n = '' then raise exception 'empty_name'; end if;
+  begin
+    update public.categories set name = n where id = p_cat and list_id = p_list;
+  exception when unique_violation then raise exception 'name_taken';
+  end;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- New order: p_cats lists the category ids first to last.
+create or replace function public.pouch_cat_order(p_list text, p_pass text, p_cats uuid[])
+returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  update public.categories c set pos = array_position(p_cats, c.id) - 1
+   where c.list_id = p_list and c.id = any(p_cats);
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- Starter categories: p_cats is [{"key": "dairy", "name": "Meieri og egg"}, ...] in order.
+-- Names the list already has are skipped; new ones go after the existing ones.
+create or replace function public.pouch_cat_init(p_list text, p_pass text, p_cats json)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare base int;
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  base := coalesce((select max(pos) + 1 from public.categories where list_id = p_list), 0);
+  insert into public.categories (list_id, name, key, pos)
+  select p_list, left(trim(e.value->>'name'), 30), nullif(left(e.value->>'key', 30), ''), base + e.ord::int - 1
+    from json_array_elements(p_cats) with ordinality as e(value, ord)
+   where trim(coalesce(e.value->>'name', '')) <> ''
+   limit 60
+  on conflict (list_id, lower(name)) do nothing;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- Copy categories and learned tags from another list (needs both passwords).
+create or replace function public.pouch_cat_copy(p_list text, p_pass text, p_src text, p_src_pass text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare base int;
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  perform pouch_private.check_pass(p_src, p_src_pass);
+  base := coalesce((select max(pos) + 1 from public.categories where list_id = p_list), 0);
+  insert into public.categories (list_id, name, key, pos)
+  select p_list, s.name, s.key, base + s.pos
+    from public.categories s where s.list_id = p_src
+  on conflict (list_id, lower(name)) do nothing;
+
+  -- learned words, with their tags mapped to this list's categories by name
+  insert into public.memory (list_id, key, label, uses, cats)
+  select p_list, m.key, m.label, 0,
+         coalesce((select array_agg(t.id order by t.pos)
+                     from unnest(m.cats) sc
+                     join public.categories s on s.id = sc
+                     join public.categories t on t.list_id = p_list and lower(t.name) = lower(s.name)), '{}')
+    from public.memory m
+   where m.list_id = p_src and cardinality(m.cats) > 0
+  on conflict (list_id, key) do update
+    set cats = case when cardinality(public.memory.cats) = 0 then excluded.cats else public.memory.cats end;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+grant execute on function
+  public.pouch_add(text, text, text, text, text, uuid[]),
+  public.pouch_set_cats(text, text, uuid, uuid[]),
+  public.pouch_cat_add(text, text, text, uuid),
+  public.pouch_cat_rename(text, text, uuid, text),
+  public.pouch_cat_order(text, text, uuid[]),
+  public.pouch_cat_init(text, text, json),
+  public.pouch_cat_copy(text, text, text, text)
+to anon, authenticated;
+
+-- Remove a category from the list, and from every item and remembered word that had it
+create or replace function public.pouch_cat_delete(p_list text, p_pass text, p_cat uuid)
+returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  update public.items  set cats = array_remove(cats, p_cat) where list_id = p_list and p_cat = any(cats);
+  update public.memory set cats = array_remove(cats, p_cat) where list_id = p_list and p_cat = any(cats);
+  delete from public.categories where id = p_cat and list_id = p_list;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+grant execute on function public.pouch_cat_delete(text, text, uuid) to anon, authenticated;
+
 -- ---------- Who may call what ----------
 grant execute on function
   public.pouch_create(text, text),

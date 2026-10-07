@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="categories.js"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -60,7 +61,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gum);outline-of
 /* forms */
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=password]{width:100%;min-width:0;font:inherit;font-size:18px;padding:14px 16px;border-radius:var(--r);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);outline:none}
+select,input[type=text],input[type=password]{width:100%;min-width:0;font:inherit;font-size:18px;padding:14px 16px;border-radius:var(--r);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);outline:none}
 input:focus{border-color:var(--gum)}
 .btn{border:0;border-radius:var(--r);background:var(--gum);color:var(--gum-ink);font-weight:700;padding:14px 20px;font-size:17px}
 .btn.ghost{background:transparent;color:var(--gum);border:1.5px solid var(--line)}
@@ -137,6 +138,40 @@ button.person{cursor:pointer;font-family:inherit;color:inherit}
 .btn.danger{background:transparent;color:var(--danger);border:1.5px solid var(--line)}
 .btn.danger.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
 
+/* categories: tags under items */
+.items li{flex-wrap:wrap}
+.items li.tagged .tog{padding-bottom:4px}
+.tags{flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 10px 56px}
+.tag{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;font:600 12.5px/1.5 var(--body);padding:1px 9px}
+.tag.add{border-style:dashed;background:transparent}
+.tagedit{flex-basis:100%;display:flex;flex-direction:column;gap:10px;padding:2px 12px 12px 56px}
+.tagopts{display:flex;flex-wrap:wrap;gap:6px}
+.tagopt{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;font-size:14px;font-weight:600;padding:5px 12px}
+.tagopt[aria-pressed="true"]{background:var(--gum);border-color:var(--gum);color:var(--gum-ink)}
+.tagnew{display:flex;gap:6px}
+.tagnew input{font-size:15px;padding:8px 12px;border-radius:12px}
+.tagnew .btn{padding:8px 14px;font-size:15px;border-radius:12px}
+.tagedit .link{align-self:flex-start;padding:4px 0}
+.filter{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-block:-6px;padding-block:2px}
+.filter::-webkit-scrollbar{display:none}
+.fchip{flex:none;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;font-size:14px;font-weight:600;padding:5px 12px}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+
+/* categories screen */
+.catlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.catlist li{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.catlist li.dragging{box-shadow:0 6px 18px rgba(0,0,0,.18);border-color:var(--gum);position:relative;z-index:2}
+.grip{flex:none;width:40px;height:40px;border:0;background:none;color:var(--muted);font-size:20px;touch-action:none;cursor:grab;border-radius:10px}
+input.catname{flex:1;width:auto;min-width:0;font:inherit;font-size:17px;padding:8px 10px;border:1.5px solid transparent;border-radius:10px;background:transparent;color:var(--ink);outline:none}
+input.catname:focus{border-color:var(--gum);background:var(--bg)}
+.catdel{flex:none;height:40px;min-width:40px;border:0;background:none;color:var(--muted);font-size:20px;border-radius:10px;padding:0 10px}
+.catdel.armed{background:var(--danger);color:#fff;font-size:14px;font-weight:700}
+.card .inline{display:flex;gap:8px}
+.card .inline select{flex:1;min-width:0;font-size:16px;padding:10px 12px}
+.card .inline .btn{padding:10px 16px;font-size:15px}
+.menurow{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left}
+.menurow span:last-child{color:var(--muted);font-weight:400}
+
 /* settings sheet */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--bg)}
@@ -195,6 +230,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
     <div class="field"><label for="myNameNew">Your name</label><input id="myNameNew" type="text" maxlength="40" placeholder="So others know who's on the list" required autocomplete="given-name"></div>
     <div class="field"><label for="newName">List name</label><input id="newName" type="text" maxlength="60" placeholder="Groceries" required></div>
     <div class="field"><label for="newPass">Password</label><input id="newPass" type="text" minlength="4" maxlength="64" placeholder="At least 4 characters" required autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+    <div class="field"><label for="newCats">Categories</label><select id="newCats"></select></div>
     <p class="hint">Anyone with the link and this password can see and change the list.</p>
     <p class="err" id="newErr" hidden></p>
     <button class="btn" id="newBtn" type="submit">Create list</button>
@@ -238,6 +274,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
       </div>
       <p class="hint" id="modeHint">Crossed-off items move to a hidden pile you can open and clear.</p>
     </div>
+    <button class="btn ghost menurow" type="button" id="catsBtn"><span>Categories</span><span id="catsCount"></span></button>
     <div class="row">
       <span class="label">Share</span>
       <p class="hint">The share link includes the password, so whoever taps it gets straight in.</p>
@@ -264,6 +301,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
     <div class="chips" id="chips"></div>
   </div>
 
+  <div class="filter" id="filterRow" role="group" aria-label="Show only one category" hidden></div>
   <ul class="items" id="activeList" aria-label="To get"></ul>
   <div class="empty" id="empty"><span data-joey></span><strong id="emptyTitle">The pouch is empty</strong><span id="emptyText">Add the first item above. Everyone with the link sees it straight away.</span></div>
 
@@ -274,6 +312,25 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
       <button class="link" type="button" id="clearBtn">Clear</button>
     </div>
     <ul class="items" id="doneList" aria-label="Crossed off" hidden></ul>
+  </section>
+</main>
+
+<!-- Categories -->
+<main class="wrap" id="vCats" hidden>
+  <div class="top">
+    <button class="iconbtn" type="button" id="catsBack" aria-label="Back to the list"><svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <h1>Categories</h1>
+  </div>
+  <p class="hint" id="catsHint">The list follows this order. Drag ⠿ to move a category, tap a name to rename it.</p>
+  <ul class="catlist" id="catList"></ul>
+  <form class="addrow" id="catAddForm" autocomplete="off">
+    <input id="catNew" type="text" maxlength="30" placeholder="New category" aria-label="New category">
+    <button class="btn" type="submit">Add</button>
+  </form>
+  <section class="card" id="catImport">
+    <h2 id="catImportTitle">Add categories</h2>
+    <div class="inline"><select id="catImportSel" aria-label="Categories to add"></select><button class="btn" type="button" id="catImportBtn">Add</button></div>
+    <p class="hint">Starter categories sort common groceries automatically, in English, German and Norwegian.</p>
   </section>
 </main>
 
@@ -294,7 +351,7 @@ document.querySelectorAll('[data-joey]').forEach(el => {
   if (el.dataset.joey === 'big') svg.classList.add('big');
   el.replaceWith(svg);
 });
-function show(view){ for (const v of ['vSetup','vHome','vGate','vList']) $('#'+v).hidden = v !== view; window.scrollTo(0,0); }
+function show(view){ for (const v of ['vSetup','vHome','vGate','vList','vCats']) $('#'+v).hidden = v !== view; window.scrollTo(0,0); }
 
 let toastTimer, toastUndo = null;
 function toast(msg, undo){
@@ -353,6 +410,7 @@ document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click'
 
 /* ================= home ================= */
 function renderHome(){
+  fillCatChoice($('#newCats'), { none:true, selected: store.get('pouch.catChoice', 'starter:no') });
   $('#myNameNew').value = myName();
   const ul = $('#myLists'); ul.textContent = '';
   const all = saved();
@@ -376,6 +434,9 @@ $('#newForm').addEventListener('submit', async e => {
   try {
     const id = await rpc('pouch_create', { p_name: name, p_pass: pass });
     saveList(id, pass, name);
+    const choice = $('#newCats').value; store.set('pouch.catChoice', choice);
+    try { await importCats(id, pass, choice); }
+    catch { toast('The list was made, but its categories couldn’t be added. Add them under ⋯ → Categories.'); }
     $('#newName').value = ''; $('#newPass').value = '';
     location.hash = id;
   } catch {
@@ -406,13 +467,13 @@ $('#gateForm').addEventListener('submit', async e => {
 });
 
 /* ================= list state ================= */
-const L = { id:null, pass:null, name:'', mode:'hide', created:null, items:[], memory:[], members:[], online:new Set(), pending:0, channel:null, poll:null };
+const L = { id:null, pass:null, name:'', mode:'hide', created:null, items:[], memory:[], members:[], cats:[], online:new Set(), pending:0, channel:null, poll:null };
 const just = new Set();          // ids that were crossed off a moment ago (stay in place briefly)
 const deleting = new Map();      // id -> timer, for delete mode with undo
 
 async function openList(id, pass, snap){
   const switching = L.id !== id;
-  if (switching){ leaveList(); L.id = id; L.pass = pass; L.items = []; L.memory = []; L.members = []; L.created = null; L.online = new Set(); $('#createdText').textContent = ''; $('#people').textContent = ''; $('#listName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
+  if (switching){ leaveList(); L.id = id; L.pass = pass; L.items = []; L.memory = []; L.members = []; L.cats = []; L.created = null; filterCat = null; editingTags = null; L.online = new Set(); $('#createdText').textContent = ''; $('#people').textContent = ''; $('#listName').textContent = (saved().find(l=>l.id===id)||{}).name || '…'; $('#subText').textContent = 'Loading…'; $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded','false'); }
   show('vList');
   try {
     apply(snap || await rpc('pouch_open', { p_list: id, p_pass: pass }));
@@ -479,7 +540,8 @@ function refreshSoon(){
   }, 150);
 }
 function apply(s){
-  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.created = s.created_at || null;
+  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.cats = s.categories || []; L.created = s.created_at || null;
+  if (filterCat && !L.cats.some(c => c.id === filterCat)) filterCat = null;
   saveList(L.id, L.pass, L.name);
   render();
 }
@@ -536,8 +598,9 @@ function addItem(raw){
     if (qty && qty !== existing.qty) setQty(existing.id, qty);
     flash(existing.id); return;
   }
-  change('pouch_add', { p_text: text, p_qty: qty, p_device: deviceId() }, () => {
-    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, added_by: deviceId(), created_at:new Date().toISOString() });
+  const cats = guessCats(text);
+  change('pouch_add', { p_text: text, p_qty: qty, p_device: deviceId(), p_cats: cats }, () => {
+    L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
     const m = L.memory.find(m => m.key === k);
     if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
   });
@@ -570,16 +633,16 @@ function addMany(parts){
     const { qty, text } = parseQty(raw);
     const k = keyOf(text);
     if (!text || seen.has(k)) continue;
-    seen.add(k); batch.push({ text, qty });
+    seen.add(k); batch.push({ text, qty, cats: guessCats(text) });
   }
   if (!batch.length) return;
   if (batch.length === 1){ addItem((batch[0].qty ? batch[0].qty + ' ' : '') + batch[0].text); return; }
   change('pouch_add_many', { p_items: batch.slice(0, 50), p_device: deviceId() }, () => {
-    for (const { text, qty } of batch){
+    for (const { text, qty, cats } of batch){
       const k = keyOf(text);
       const open = L.items.find(i => keyOf(i.text) === k && !i.done);
       if (open){ if (qty) open.qty = qty; }
-      else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', done:false, added_by: deviceId(), created_at:new Date().toISOString() });
+      else L.items.push({ id:'tmp-' + (++tmpN), text, qty: qty || '1', cats, done:false, added_by: deviceId(), created_at:new Date().toISOString() });
       const m = L.memory.find(m => m.key === k);
       if (m) m.uses++; else L.memory.push({ key:k, label:text, uses:1 });
     }
@@ -593,6 +656,7 @@ function setQty(id, raw){
 }
 let editingQty = null;
 function editQty(id, pill){
+  if (editingTags){ editingTags = null; render(); return; }
   const it = L.items.find(i => i.id === id); if (!it) return;
   editingQty = id;
   const inp = document.createElement('input');
@@ -690,6 +754,25 @@ function itemLi(it){
   del.setAttribute('aria-label', 'Delete ' + it.text);
   del.addEventListener('click', () => removeItem(it.id));
   li.append(tog, q, del);
+  if (!it.done){
+    if (editingTags === it.id) li.append(tagEditor(it));
+    else if (L.cats.length){
+      const row = document.createElement('div'); row.className = 'tags';
+      for (const c of catsOf(it)){
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'tag'; b.textContent = c.name;
+        b.setAttribute('aria-label', `Category ${c.name}. Tap to change categories`);
+        b.addEventListener('click', () => openTags(it.id)); row.append(b);
+      }
+      // "+" only on items without a category; tap any tag to change them
+      if (!row.children.length){
+        const add = document.createElement('button'); add.type = 'button'; add.className = 'tag add'; add.textContent = '+ category';
+        add.setAttribute('aria-label', 'Add a category to ' + it.text);
+        add.disabled = it.id.startsWith('tmp-');
+        add.addEventListener('click', () => openTags(it.id)); row.append(add);
+      }
+      li.append(row); li.classList.add('tagged');
+    }
+  }
   return li;
 }
 function render(){
@@ -697,16 +780,20 @@ function render(){
   $('#listName').textContent = L.name || '…';
   document.title = (L.name ? L.name + ' · ' : '') + 'Pouch';
   const visible = L.items.filter(i => !hidden.has(i.id));
-  const active = visible.filter(i => !i.done || just.has(i.id) || deleting.has(i.id));
+  const activeAll = visible.filter(i => !i.done || just.has(i.id) || deleting.has(i.id)).sort(byCategory);
+  if (filterCat && !activeAll.some(i => !i.done && (i.cats || []).includes(filterCat))) filterCat = null;
+  const active = filterCat ? activeAll.filter(i => (i.cats || []).includes(filterCat)) : activeAll;
   const done = visible.filter(i => i.done && !just.has(i.id) && !deleting.has(i.id))
                       .sort((a,b) => (b.done_at || '').localeCompare(a.done_at || ''));
-  if (!editingQty){
+  if (editingTags && $('#tagEdit')) refreshTagEditor();
+  if (!(editingTags && $('#tagEdit')) && !editingQty){
     $('#activeList').replaceChildren(...active.map(itemLi));
     $('#doneList').replaceChildren(...done.map(itemLi));
   }
+  renderFilter(activeAll);
 
-  const open = active.filter(i => !i.done).length;
-  $('#empty').hidden = active.length > 0;
+  const open = activeAll.filter(i => !i.done).length;
+  $('#empty').hidden = activeAll.length > 0;
   $('#emptyTitle').textContent = done.length ? 'All crossed off' : 'The pouch is empty';
   $('#emptyText').textContent = done.length ? 'Nice work. Add something new above.' : 'Add the first item above. Everyone with the link sees it straight away.';
   $('#pileSec').hidden = done.length === 0;
@@ -727,8 +814,10 @@ function render(){
     $('#createdText').textContent = 'Created ' + d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
   }
   $('#createdSep').hidden = !L.created;
+  $('#catsCount').textContent = L.cats.length ? String(L.cats.length) : 'Off';
   renderPeople();
   renderChips();
+  if (!$('#vCats').hidden) renderCats();
 }
 const AV_COLORS = ['#2E6A4E','#A0522D','#6A4C93','#1F6F8B','#B5651D','#7A3E48','#4F6D3A','#3D5A80'];
 function avColor(device){ let h = 0; for (const c of device) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
@@ -755,7 +844,7 @@ function renderChips(){
   const box = $('#chips'); box.textContent = '';
   const q = keyOf($('#entry').value);
   const onList = new Set(L.items.filter(i => !i.done).map(i => keyOf(i.text)));
-  let pool = L.memory.filter(m => !onList.has(m.key));
+  let pool = L.memory.filter(m => m.uses > 0 && !onList.has(m.key));
   let label;
   if (q){
     pool = pool.filter(m => m.key.includes(q) && m.key !== q)
@@ -776,6 +865,225 @@ function renderChips(){
     c.append(add, x); box.append(c);
   }
 }
+
+/* ================= categories ================= */
+let filterCat = null;      // show only items with this category
+let editingTags = null;    // item whose categories are being edited
+const catPos = () => new Map(L.cats.map((c, i) => [c.id, i]));
+function catsOf(it){
+  const pos = catPos();
+  return (it.cats || []).filter(id => pos.has(id)).sort((a, b) => pos.get(a) - pos.get(b)).map(id => L.cats[pos.get(id)]);
+}
+// List order follows category order (an item with several goes by its first); untagged items last.
+function byCategory(a, b){
+  const pos = catPos();
+  const rank = it => Math.min(...(it.cats || []).map(id => pos.has(id) ? pos.get(id) : Infinity), Infinity);
+  return (rank(a) - rank(b)) || (a.created_at || '').localeCompare(b.created_at || '');
+}
+// Categories for a new item: what this list remembers for the word, else the starter word list.
+function guessCats(text){
+  if (!L.cats.length) return [];
+  const ids = new Set(L.cats.map(c => c.id));
+  const m = L.memory.find(m => m.key === keyOf(text));
+  const remembered = (m && m.cats || []).filter(id => ids.has(id));
+  if (remembered.length) return remembered;
+  const byKey = new Map(L.cats.filter(c => c.key).map(c => [c.key, c.id]));
+  return [...new Set(guessCategoryKeys(text).map(k => byKey.get(k)).filter(Boolean))];
+}
+function renderFilter(activeAll){
+  const row = $('#filterRow');
+  const used = L.cats.filter(c => activeAll.some(i => !i.done && (i.cats || []).includes(c.id)));
+  row.hidden = used.length < 2 && !filterCat;
+  if (row.hidden) return;
+  const chip = (label, id) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'fchip'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(filterCat === id));
+    b.addEventListener('click', () => { filterCat = filterCat === id ? null : id; render(); });
+    return b;
+  };
+  row.replaceChildren(chip('All', null), ...used.map(c => chip(c.name, c.id)));
+}
+
+/* Tag editor, opened under an item */
+function openTags(id){ editingQty = null; editingTags = id; render(); }
+function closeTags(){ editingTags = null; render(); }
+function tagEditor(it){
+  const box = document.createElement('div'); box.className = 'tagedit'; box.id = 'tagEdit';
+  const opts = document.createElement('div'); opts.className = 'tagopts'; opts.setAttribute('role', 'group');
+  opts.setAttribute('aria-label', 'Categories for ' + it.text);
+  const form = document.createElement('form'); form.className = 'tagnew'; form.autocomplete = 'off';
+  const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 30; inp.id = 'tagNewInput';
+  inp.placeholder = 'New category'; inp.setAttribute('aria-label', 'New category');
+  const add = document.createElement('button'); add.className = 'btn'; add.type = 'submit'; add.textContent = 'Add';
+  form.append(inp, add);
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const n = norm(inp.value); if (!n) return;
+    inp.value = '';
+    const known = L.cats.find(c => c.name.toLowerCase() === n.toLowerCase());
+    if (known){ if (!(it.cats || []).includes(known.id)) toggleTag(it.id, known.id); return; }
+    change('pouch_cat_add', { p_name:n, p_item:it.id });
+  });
+  const done = document.createElement('button'); done.type = 'button'; done.className = 'link'; done.textContent = 'Done';
+  done.addEventListener('click', closeTags);
+  box.append(opts, form, done);
+  fillTagOpts(opts, it);
+  return box;
+}
+function fillTagOpts(opts, it){
+  opts.replaceChildren(...L.cats.map(c => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tagopt'; b.textContent = c.name;
+    b.setAttribute('aria-pressed', String((it.cats || []).includes(c.id)));
+    b.addEventListener('click', () => toggleTag(it.id, c.id));
+    return b;
+  }));
+}
+function refreshTagEditor(){
+  const it = L.items.find(i => i.id === editingTags);
+  const box = $('#tagEdit');
+  if (!it || it.done){ editingTags = null; return; }   // render() then rebuilds the list
+  fillTagOpts(box.querySelector('.tagopts'), it);
+}
+function toggleTag(itemId, catId){
+  const it = L.items.find(i => i.id === itemId); if (!it) return;
+  const cur = it.cats || [];
+  const next = cur.includes(catId) ? cur.filter(x => x !== catId) : [...cur, catId];
+  change('pouch_set_cats', { p_item:itemId, p_cats:next }, () => {
+    it.cats = next;
+    const m = L.memory.find(m => m.key === keyOf(it.text)); if (m) m.cats = next;
+  });
+}
+
+/* Starter sets and copying */
+function fillCatChoice(sel, { none = false, exclude = null, selected = null } = {}){
+  sel.textContent = '';
+  const opt = (value, label) => { const o = document.createElement('option'); o.value = value; o.textContent = label; return o; };
+  const g1 = document.createElement('optgroup'); g1.label = 'Grocery categories';
+  for (const [code, lang] of Object.entries(STARTER_LANGS)) g1.append(opt('starter:' + code, lang));
+  sel.append(g1);
+  const others = saved().filter(l => l.id !== exclude);
+  if (others.length){
+    const g2 = document.createElement('optgroup'); g2.label = 'Copy from a list';
+    for (const l of others) g2.append(opt('copy:' + l.id, l.name || 'Untitled list'));
+    sel.append(g2);
+  }
+  if (none) sel.append(opt('none', 'No categories'));
+  if (selected && [...sel.options].some(o => o.value === selected)) sel.value = selected;
+}
+async function importCats(id, pass, choice){
+  if (!choice || choice === 'none') return null;
+  if (choice.startsWith('starter:')){
+    const lang = choice.slice(8);
+    return rpc('pouch_cat_init', { p_list:id, p_pass:pass, p_cats: STARTER_CATEGORIES.map(c => ({ key:c.key, name:c[lang] || c.en })) });
+  }
+  const src = choice.slice(5);
+  return rpc('pouch_cat_copy', { p_list:id, p_pass:pass, p_src:src, p_src_pass: passFor(src) });
+}
+
+/* Categories screen */
+let draggingCats = false;
+function openCats(){
+  $('#sheet').hidden = true; $('#menuBtn').setAttribute('aria-expanded', 'false');
+  show('vCats'); renderCats();
+}
+$('#catsBtn').addEventListener('click', openCats);
+$('#catsBack').addEventListener('click', () => { show('vList'); render(); });
+function renderCats(){
+  if (draggingCats || document.activeElement?.classList.contains('catname')) return;
+  const ul = $('#catList');
+  ul.replaceChildren(...L.cats.map(c => {
+    const li = document.createElement('li'); li.dataset.id = c.id;
+    const grip = document.createElement('button'); grip.type = 'button'; grip.className = 'grip'; grip.textContent = '⠿';
+    grip.setAttribute('aria-label', `Move ${c.name}. Use arrow keys or drag`);
+    grip.addEventListener('pointerdown', e => dragCat(e, li, grip));
+    grip.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const sib = e.key === 'ArrowUp' ? li.previousElementSibling : li.nextElementSibling?.nextElementSibling;
+      if (e.key === 'ArrowUp' && !sib) return;
+      ul.insertBefore(li, sib || null); grip.focus(); saveCatOrder();
+    });
+    const name = document.createElement('input'); name.type = 'text'; name.className = 'catname'; name.value = c.name;
+    name.maxLength = 30; name.setAttribute('aria-label', 'Category name');
+    const commit = () => {
+      const n = norm(name.value);
+      if (!n || n === c.name){ name.value = c.name; return; }
+      if (L.cats.some(o => o.id !== c.id && o.name.toLowerCase() === n.toLowerCase())){ toast(`There's already a category called ${n}`); name.value = c.name; return; }
+      change('pouch_cat_rename', { p_cat:c.id, p_name:n }, () => { c.name = n; });
+    };
+    name.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); name.blur(); } if (e.key === 'Escape'){ name.value = c.name; name.blur(); } });
+    name.addEventListener('blur', () => { commit(); setTimeout(renderCats, 0); });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'catdel'; del.textContent = '×';
+    del.setAttribute('aria-label', 'Delete ' + c.name);
+    del.addEventListener('click', () => {
+      if (!del.classList.contains('armed')){
+        del.classList.add('armed'); del.textContent = 'Delete';
+        setTimeout(() => { del.classList.remove('armed'); del.textContent = '×'; }, 3000); return;
+      }
+      change('pouch_cat_delete', { p_cat:c.id }, () => {
+        L.cats = L.cats.filter(o => o.id !== c.id);
+        for (const it of L.items) if (it.cats) it.cats = it.cats.filter(x => x !== c.id);
+      });
+    });
+    li.append(grip, name, del);
+    return li;
+  }));
+  $('#catsHint').hidden = !L.cats.length;
+  $('#catImportTitle').textContent = L.cats.length ? 'Add more categories' : 'Start with a set';
+  const sel = $('#catImportSel'), keep = sel.value;
+  fillCatChoice(sel, { exclude: L.id, selected: keep || store.get('pouch.catChoice', 'starter:no') });
+}
+function dragCat(e, li, grip){
+  e.preventDefault();
+  const ul = $('#catList'); draggingCats = true;
+  li.classList.add('dragging');
+  const before = [...ul.children].map(r => r.dataset.id).join();
+  const move = ev => {
+    let target = null;
+    for (const r of ul.children){
+      if (r === li) continue;
+      const b = r.getBoundingClientRect();
+      if (ev.clientY < b.top + b.height / 2){ target = r; break; }
+    }
+    if (target !== li.nextElementSibling) ul.insertBefore(li, target);
+  };
+  // Listen on the whole page: moving the row in the DOM would drop a capture on the handle.
+  const end = () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', end);
+    document.removeEventListener('pointercancel', end);
+    li.classList.remove('dragging'); draggingCats = false;
+    if ([...ul.children].map(r => r.dataset.id).join() !== before) saveCatOrder();
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+}
+function saveCatOrder(){
+  const ids = [...$('#catList').children].map(r => r.dataset.id);
+  change('pouch_cat_order', { p_cats: ids }, () => {
+    const byId = new Map(L.cats.map(c => [c.id, c]));
+    L.cats = ids.map((id, i) => Object.assign(byId.get(id), { pos:i }));
+  });
+}
+$('#catAddForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = norm($('#catNew').value); if (!n) return;
+  if (L.cats.some(c => c.name.toLowerCase() === n.toLowerCase())){ toast(`There's already a category called ${n}`); return; }
+  $('#catNew').value = '';
+  change('pouch_cat_add', { p_name:n, p_item:null });
+});
+$('#catImportBtn').addEventListener('click', async () => {
+  const choice = $('#catImportSel').value, id = L.id;
+  $('#catImportBtn').disabled = true;
+  try {
+    const s = await importCats(id, L.pass, choice);
+    if (s && L.id === id) apply(s);
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    toast('Categories added');
+  } catch { toast('Couldn’t add them. If you copied from a list, its password may have changed.'); }
+  finally { $('#catImportBtn').disabled = false; }
+});
 
 /* ================= list controls ================= */
 $('#addForm').addEventListener('submit', e => {
