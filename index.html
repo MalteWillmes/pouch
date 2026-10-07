@@ -555,7 +555,7 @@ function refreshSoon(){
   }, 150);
 }
 function apply(s){
-  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.cats = s.categories || []; L.created = s.created_at || null;
+  L.name = s.name; L.mode = s.done_mode; L.items = s.items || []; L.memory = s.memory || []; L.members = s.members || []; L.cats = s.categories || []; L.sort = s.sort_mode || 'cat'; L.created = s.created_at || null;
   if (filterCat && !L.cats.some(c => c.id === filterCat)) filterCat = null;
   saveList(L.id, L.pass, L.name);
   render();
@@ -894,10 +894,10 @@ function catsOf(it){
   return (it.cats || []).filter(id => pos.has(id)).sort((a, b) => pos.get(a) - pos.get(b)).map(id => L.cats[pos.get(id)]);
 }
 // List order follows category order (an item with several goes by its first); untagged items last.
-/* Sorting the open items. The choice is kept per list on this phone. */
+/* Sorting the open items. Shared by everyone on the list. */
 const SORTS = ['cat', 'alpha', 'person', 'time'];
 function sortMode(){
-  let m = store.get('pouch.sort.' + L.id, 'cat');
+  let m = L.sort || 'cat';
   if (!SORTS.includes(m)) m = 'cat';
   // without categories or other people those two sorts fall back to time added
   if ((m === 'cat' && !L.cats.length) || (m === 'person' && L.members.length < 2)) m = 'time';
@@ -906,18 +906,16 @@ function sortMode(){
 const byTime = (a, b) => (a.created_at || '').localeCompare(b.created_at || '');
 const byAlpha = (a, b) => a.text.localeCompare(b.text, undefined, { sensitivity:'base', numeric:true }) || byTime(a, b);
 function byPerson(a, b){
-  const me = deviceId();
   const name = it => { const m = L.members.find(m => m.device === it.added_by); return m ? m.name : null; };
   const na = name(a), nb = name(b);
-  // you first, then others A–Z, unknown last; same person: oldest first
-  const rank = (it, n) => it.added_by === me ? 0 : n ? 1 : 2;
-  return (rank(a, na) - rank(b, nb)) || (na || '').localeCompare(nb || '', undefined, { sensitivity:'base' }) || byTime(a, b);
+  // people A–Z (same for everyone), unknown last; same person: oldest first
+  return (!na - !nb) || (na || '').localeCompare(nb || '', undefined, { sensitivity:'base' }) || byTime(a, b);
 }
 function sorter(){
   const m = sortMode();
   return m === 'alpha' ? byAlpha : m === 'person' ? byPerson : m === 'time' ? byTime : byCategory;
 }
-$('#sortSel').addEventListener('change', e => { store.set('pouch.sort.' + L.id, e.target.value); render(); });
+$('#sortSel').addEventListener('change', e => { const v = e.target.value; change('pouch_set_sort', { p_mode:v }, () => { L.sort = v; }); });
 function byCategory(a, b){
   const pos = catPos();
   const rank = it => Math.min(...(it.cats || []).map(id => pos.has(id) ? pos.get(id) : Infinity), Infinity);

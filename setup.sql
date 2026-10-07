@@ -340,6 +340,8 @@ create table if not exists public.categories (
   pos        int  not null default 0,    -- order; also the order of items on the list
   created_at timestamptz not null default now()
 );
+alter table public.lists add column if not exists sort_mode text not null default 'cat'
+  check (sort_mode in ('cat', 'alpha', 'person', 'time'));
 create unique index if not exists categories_name_idx on public.categories (list_id, lower(name));
 alter table public.categories enable row level security;
 alter table public.items  add column if not exists cats uuid[] not null default '{}';
@@ -361,6 +363,7 @@ language sql security definer set search_path = public as $$
     'id', l.id,
     'name', l.name,
     'done_mode', l.done_mode,
+    'sort_mode', l.sort_mode,
     'created_at', l.created_at,
     'categories', coalesce((
       select json_agg(json_build_object('id', c.id, 'name', c.name, 'key', c.key, 'pos', c.pos)
@@ -578,6 +581,19 @@ grant execute on function
   public.pouch_cat_init(text, text, json),
   public.pouch_cat_copy(text, text, text, text)
 to anon, authenticated;
+
+-- How the open items are sorted, shared by everyone on the list
+create or replace function public.pouch_set_sort(p_list text, p_pass text, p_mode text)
+returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if p_mode not in ('cat', 'alpha', 'person', 'time') then raise exception 'bad_sort'; end if;
+  update public.lists set sort_mode = p_mode where id = p_list;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+grant execute on function public.pouch_set_sort(text, text, text) to anon, authenticated;
 
 -- Remove a category from the list, and from every item and remembered word that had it
 create or replace function public.pouch_cat_delete(p_list text, p_pass text, p_cat uuid)

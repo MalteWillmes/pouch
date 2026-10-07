@@ -52,7 +52,7 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 - **Undo:** deleting an item (×) or clearing the crossed-off pile shows an **Undo** button for a few seconds.
 - **Categories:** when you make a list, pick starter grocery categories (Norwegian, German or English names), copy the categories from another of your lists, or none. Items get their categories automatically from a word list in all three languages; the categories show as small tags under each item. Tap a tag (or **+ category**) to change them or make a new one; the list remembers your choice the next time that item is added. An item can have several.
 - **Order and filtering:** the list follows the category order. Change it under **⋯ → Categories**: drag ⠿ to move a category, tap a name to rename it, × to delete it. Tap a category in the row above the list to show only those items.
-- **Sorting:** the small **Sort** menu above the list sorts open items by category (default), A–Z, by person (yours first), or by time added. Each phone remembers its own choice per list.
+- **Sorting:** the small **Sort** menu above the list sorts open items by category (default), A–Z, by person (A–Z by name), or by time added. The choice is shared: changing it changes the order for everyone on the list.
 - **Suggestions:** as you type, earlier items from that list show up as chips. With the box empty, the most-used items show. Tap × on a chip to forget it.
 - **Crossed-off items (⋯ menu):**
   - **Hide it** (default): crossed-off items go into a pile at the bottom, hidden until you tap **Show**. **Clear** deletes the pile.
