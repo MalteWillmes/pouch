@@ -593,6 +593,40 @@ language sql security definer set search_path = public as $$
   select exists (select 1 from public.lists limit 1) or true
 $$;
 
+-- Rename an item (fix a typo). The topic also remembers the new word for suggestions.
+create or replace function public.pouch_set_text(p_list text, p_pass text, p_item uuid, p_text text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare t text := left(regexp_replace(trim(coalesce(p_text, '')), '\s+', ' ', 'g'), 120);
+        c uuid[]; old text;
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if t = '' then raise exception 'empty_item'; end if;
+  select text into old from public.items where id = p_item and list_id = p_list;
+  update public.items set text = t where id = p_item and list_id = p_list returning cats into c;
+  -- the misspelled word stops being suggested (it is kept, just not counted)
+  if old is not null and lower(old) <> lower(t) then
+    update public.memory set uses = greatest(uses - 1, 0) where list_id = p_list and key = lower(old);
+  end if;
+  insert into public.memory (list_id, key, label, cats) values (p_list, lower(t), t, coalesce(c, '{}'))
+  on conflict (list_id, key) do nothing;
+  return pouch_private.snapshot(p_list);
+end $$;
+
+-- Put every item of one list (e.g. a finished one in History) onto another list, with amounts and categories
+create or replace function public.pouch_sub_copy(p_list text, p_pass text, p_from uuid, p_to uuid, p_device text)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare r record;
+begin
+  perform pouch_private.check_pass(p_list, p_pass);
+  if not exists (select 1 from public.sublists where id = p_to and list_id = p_list) then raise exception 'no_such_list'; end if;
+  for r in select text, qty, cats from public.items where sublist_id = p_from and list_id = p_list order by created_at loop
+    perform pouch_private.add_one(p_list, r.text, nullif(r.qty, '1'), p_device, r.cats, p_to);
+  end loop;
+  return pouch_private.snapshot(p_list);
+end $$;
+
 -- ---------- Older versions of functions, kept so older copies of the page keep working ----------
 create or replace function public.pouch_add(p_list text, p_pass text, p_text text, p_qty text, p_device text, p_cats uuid[])
 returns json
@@ -693,6 +727,8 @@ grant execute on function
   public.pouch_cat_copy(text,text,text,text),
   public.pouch_cat_delete(text,text,uuid),
   public.pouch_ping(),
+  public.pouch_set_text(text, text, uuid, text),
+  public.pouch_sub_copy(text, text, uuid, uuid, text),
   public.pouch_add(text,text,text,text,text,uuid[]),
   public.pouch_add(text,text,text,text,text),
   public.pouch_add(text,text,text,text),

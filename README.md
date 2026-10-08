@@ -37,7 +37,7 @@ Paste in your two values and save. The public key is meant to be visible in web 
 3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, branch **main**, folder **/ (root)**, and save.
 4. After a minute your app is live at `https://YOUR-USERNAME.github.io/lists/`.
 
-Tip: on your phone, open that address and use **Add to Home Screen** so it opens like an app.
+Tip: on your phone, open that address and use **Add to Home Screen** (iPhone: Share → Add to Home Screen; Android: ⋮ → Install app). Pouch then opens like an app, with its own icon and without browser bars.
 
 ---
 
@@ -46,11 +46,12 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 - **Topics and lists:** a *topic* (e.g. "Shopping") is what you share: it has the link and password, the people, the categories and everything the app remembers. Inside a topic you make *lists*, e.g. one per shopping trip.
 - **New topic:** type your name, a topic name and a password on the start page. Its first list (named with today's date) opens straight away.
 - **New list:** on the topic screen tap **+ New list**. It's named with today's date (rename it if you like). If the newest open list still has unbought items, it asks whether to move them to the new list (it names them), and you choose **Move them** or **Leave them**.
-- **History:** a list where everything is crossed off moves to **History** on the topic screen automatically, showing what was bought on that trip. Open it any time; adding something or bringing an item back reopens it.
+- **History:** a list where everything is crossed off moves to **History** on the topic screen automatically, showing what was bought on that trip. Open it any time; adding something or bringing an item back reopens it. A finished list has a button to put all its items on your open list again (or on a new list if none is open).
 - **List menu (⋯ on a list):** rename or delete the list, open Categories, or jump to the topic's settings.
 - **Share:** tap the share icon. The link includes the password, so whoever taps it gets straight into the topic's newest list, and their phone remembers the topic.
 - **Add several at once:** separate items with commas, like `2 milk, bread, 200g cheese`, or paste a list with one item per line.
 - **Cross off:** tap an item. Tap a crossed-off item to bring it back.
+- **Rename an item:** long-press it (right-click on a computer), fix the name and press Enter. The misspelled word stops being suggested.
 - **Amounts:** type them in front of the item, like `2 milk`, `200g blueberries` or `three apples`. Items without an amount get 1. Tap the amount on an item to change it.
 - **People:** the first time you open a list, it asks for your name. Everyone who has opened the list shows at the top, with a green dot when they have it open right now. Tap your own name to change it. Once two or more people use a list, each item shows the initial of whoever added it, or whoever crossed it off.
 - **Undo:** deleting an item (×) or clearing the crossed-off pile shows an **Undo** button for a few seconds.
@@ -70,4 +71,5 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 - **Security level:** fine for groceries and chores, not for secrets. Anyone with the link and password can change or delete items. List links contain a long random code, so they can't be guessed.
 - **Keeping the database awake:** free Supabase projects pause after about a week without use. A scheduled job in this repo (`.github/workflows/keep-awake.yml`) pings the database every 3 days so that doesn't happen. GitHub switches scheduled jobs off in repos with no changes for 60 days and sends you an email; re-enable it under the repo's **Actions** tab. If the app ever says it can't connect, open the Supabase dashboard and press **Restore project**.
 - **App updates:** phones that keep Pouch open (a browser tab or the home-screen app) check for a new version when you switch back to them and every few minutes, then reload themselves, but never while you're typing or editing. Publish changes with `./publish.sh "what changed"`, which stamps a new version into `index.html` and `version.txt` and pushes.
+- **Offline:** Pouch keeps a copy of the app and of each topic you've opened on your phone, so it opens without signal. Changes you make offline (cross off, add, rename…) wait on the phone, marked **Offline · changes sync when you're back**, and are sent as soon as there's a connection. Creating or deleting lists needs a connection.
 - **Live updates** use Supabase Realtime. If changes only show up after about 30 seconds instead of instantly, open **Realtime → Settings** in Supabase and make sure public channel access is allowed. The app also refreshes whenever you switch back to it.

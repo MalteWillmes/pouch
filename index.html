@@ -7,12 +7,18 @@
 <meta name="theme-color" content="#111814" media="(prefers-color-scheme: dark)">
 <title>Pouch</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cellipse cx='23' cy='14' rx='4.5' ry='11' fill='%23B07A4F' transform='rotate(-14 23 14)'/%3E%3Cellipse cx='41' cy='14' rx='4.5' ry='11' fill='%23B07A4F' transform='rotate(14 41 14)'/%3E%3Cellipse cx='32' cy='30' rx='15' ry='13' fill='%23B07A4F'/%3E%3Cpath d='M6 38q26-7 52 0l-5 18q-21 8-42 0z' fill='%238A5A36'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pouch">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>const APP_VERSION = "20261008144224";</script>
-<script src="categories.js?v=20261008144224"></script>
+<script>const APP_VERSION = "20261008153058";</script>
+<script src="categories.js?v=20261008153058"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -94,7 +100,8 @@ input:focus{border-color:var(--gum)}
 .items li{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-height:58px}
 .items li.flash{animation:flash .7s}
 @keyframes flash{30%{border-color:var(--gum);box-shadow:0 0 0 3px var(--gum-soft)}}
-.tog{flex:1;min-width:0;display:flex;align-items:center;gap:14px;border:0;background:none;text-align:left;padding:12px 6px 12px 16px;user-select:none;-webkit-user-select:none}
+.tog{flex:1;min-width:0;display:flex;align-items:center;gap:14px;border:0;background:none;text-align:left;padding:12px 6px 12px 16px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.txtedit{flex:1;min-width:0;font:inherit;font-size:17px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--gum);background:var(--bg);color:var(--ink);outline:none}
 .box{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:background .15s,border-color .15s}
 .box svg{width:14px;height:14px;opacity:0}
 .txt{min-width:0;overflow-wrap:anywhere;background:linear-gradient(var(--ink),var(--ink)) no-repeat 0 56%/0 2px}
@@ -196,6 +203,7 @@ input.catname:focus{border-color:var(--gum);background:var(--bg)}
 .moveask p:first-child{font-weight:600}
 .row2 .btn{flex:1}
 #nameSlotT:empty{display:none}
+.note .btn{margin-top:10px;width:100%;padding:12px 16px;font-size:16px}
 .note{margin:0;padding:12px 14px;border-radius:14px;background:var(--gum-soft);color:var(--ink);font-size:15px}
 
 /* settings sheet */
@@ -205,6 +213,9 @@ input.catname:focus{border-color:var(--gum);background:var(--bg)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .sheet .row{display:flex;flex-direction:column;gap:8px}
 .sheet .label{font-weight:700}
+
+/* offline */
+.offline{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);white-space:nowrap}
 
 /* toast */
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:15px}
@@ -340,7 +351,9 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   <div class="sub"><span id="createdText"></span><span id="createdSep" hidden>·</span><span class="dot" id="dot"></span><span id="subText">Loading…</span></div>
   <div class="people" id="people" aria-label="People on this list"></div>
 
-  <p class="note" id="finishedNote" hidden>Everything is crossed off, so this list is now in History. Add something or bring back an item to reopen it.</p>
+  <div class="note" id="finishedNote" hidden>Everything is crossed off, so this list is now in History. Add something or bring back an item to reopen it.
+    <button class="btn" type="button" id="reuseBtn"></button>
+  </div>
   <section class="sheet" id="listSheet" hidden>
     <form class="row" id="listRenameForm" autocomplete="off">
       <label class="label" for="listRenameInput">List name</label>
@@ -413,6 +426,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   </section>
 </main>
 
+<div class="offline" id="offlinePill" role="status" hidden>Offline · changes sync when you’re back</div>
 <div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button type="button" id="toastBtn" hidden>Undo</button></div>
 
 <script>
@@ -566,7 +580,10 @@ async function openList(id, pass, snap, sub){
     apply(snap || await rpc('pouch_open', { p_list: id, p_pass: pass }));
   } catch (err) {
     if (err.wrong){ forgetLocal(id); leaveList(); showGate(id, true); return; }
-    $('#subText').textContent = 'Offline. Retrying…';
+    // no connection: show the copy saved on this phone
+    const copy = savedCopy(id);
+    if (copy) { apply(copy); replayQueue(); setOffline(true); render(); }
+    else $('#subText').textContent = 'Offline. Retrying…';
   }
   if (L.id !== id) return;
   // no list given (e.g. a share link): go to the newest list that still has things on it
@@ -651,9 +668,13 @@ function refreshSoon(){
   clearTimeout(refreshT);
   refreshT = setTimeout(async () => {
     if (!L.id || L.pending) return;
+    if (queue().length && !(await flushQueue())) return;   // send offline changes first
     const id = L.id;
-    try { const s = await rpc('pouch_open', { p_list: id, p_pass: L.pass }); if (L.id === id && !L.pending) apply(s); }
-    catch (err) { if (err.wrong && L.id === id){ forgetLocal(id); leaveList(); showGate(id, true); } }
+    try { const s = await rpc('pouch_open', { p_list: id, p_pass: L.pass }); if (L.id === id && !L.pending){ apply(s); setOffline(false); } }
+    catch (err) {
+      if (err.wrong && L.id === id){ forgetLocal(id); leaveList(); showGate(id, true); }
+      else if (isNetErr(err)) setOffline(true);
+    }
   }, 150);
 }
 function apply(s){
@@ -664,15 +685,75 @@ function apply(s){
   }
   if (filterCat && !L.cats.some(c => c.id === filterCat)) filterCat = null;
   saveList(L.id, L.pass, L.name);
+  saveCopy(s);
   render();
 }
+
+/* ================= offline ================= */
+// The last copy of each topic is kept on this phone, so lists open without signal.
+// Changes made offline wait in a queue and are sent, in order, when the connection is back.
+const isNetErr = err => !navigator.onLine || /fetch|network|load failed|timed out|timeout/i.test((err && err.message) || '');
+const queue = () => store.get('pouch.queue', []);
+function setOffline(on){
+  L.offline = on;
+  $('#offlinePill').hidden = !on;
+  if (on){ $('#dot').classList.remove('live'); $('#dotT').classList.remove('live'); }
+}
+function enqueue(call){
+  const q = queue(); q.push(call); store.set('pouch.queue', q);
+  setOffline(true);
+}
+let flushing = null;
+function flushQueue(){
+  if (flushing) return flushing;
+  flushing = (async () => {
+    let q = queue();
+    while (q.length){
+      const call = q[0];
+      try { await rpc(call.fn, call.args); }
+      catch (err){
+        if (isNetErr(err)) { setOffline(true); flushing = null; return false; }   // still offline: try again later
+        // anything else (e.g. the item was deleted meanwhile): skip it
+      }
+      q = queue(); q.shift(); store.set('pouch.queue', q);
+    }
+    flushing = null;
+    setOffline(false);
+    return true;
+  })();
+  return flushing;
+}
+window.addEventListener('online', () => { flushQueue().then(ok => { if (ok) refreshSoon(); }); });
+// After reopening offline, show the waiting changes on top of the saved copy
+function replayQueue(){
+  for (const { fn, args:a } of queue()){
+    if (a.p_list !== L.id) continue;
+    const it = a.p_item && L.items.find(i => i.id === a.p_item);
+    if (fn === 'pouch_set_done' && it){ it.done = a.p_done; it.done_at = a.p_done ? new Date().toISOString() : null; }
+    else if (fn === 'pouch_set_qty' && it) it.qty = a.p_qty;
+    else if (fn === 'pouch_set_text' && it) it.text = a.p_text;
+    else if (fn === 'pouch_set_cats' && it) it.cats = a.p_cats;
+    else if (fn === 'pouch_delete_items') L.items = L.items.filter(i => !a.p_ids.includes(i.id));
+    else if (fn === 'pouch_add' || fn === 'pouch_add_many'){
+      for (const x of fn === 'pouch_add' ? [{ text:a.p_text, qty:a.p_qty, cats:a.p_cats }] : a.p_items){
+        if (!L.items.some(i => i.list === a.p_sub && !i.done && keyOf(i.text) === keyOf(x.text)))
+          L.items.push({ id:'tmp-' + (++tmpN), list:a.p_sub, text:x.text, qty:x.qty || '1', cats:x.cats || [], done:false, added_by:deviceId(), created_at:new Date().toISOString() });
+      }
+    }
+  }
+}
+function saveCopy(s){ try { localStorage.setItem('pouch.copy.' + L.id, JSON.stringify(s)); } catch {} }
+function savedCopy(id){ try { return JSON.parse(localStorage.getItem('pouch.copy.' + id)); } catch { return null; } }
 
 /* Run a change: update the screen now, save in the background, then tell everyone else. */
 async function change(fn, args, optimistic){
   if (optimistic) optimistic();
   render();
-  L.pending++;
   const id = L.id;
+  const call = { fn, args: { p_list: id, p_pass: L.pass, ...args } };
+  // while earlier offline changes are waiting, line up behind them so the order stays right
+  if (queue().length){ enqueue(call); flushQueue().then(ok => { if (ok) refreshSoon(); }); return; }
+  L.pending++;
   try {
     const s = await rpc(fn, { p_list: id, p_pass: L.pass, ...args });
     L.pending--;
@@ -681,7 +762,8 @@ async function change(fn, args, optimistic){
   } catch (err) {
     L.pending--;
     if (err.wrong){ forgetLocal(id); leaveList(); showGate(id, true); return; }
-    toast('That change didn’t save. Check your connection.');
+    if (isNetErr(err)){ enqueue(call); return; }   // keep it on screen; it's sent when the connection is back
+    toast('That change didn’t save.');
     refreshSoon();
   }
 }
@@ -776,6 +858,28 @@ function setQty(id, raw){
   change('pouch_set_qty', { p_item:id, p_qty:qty }, () => { it.qty = qty; });
 }
 let editingQty = null;
+let editingText = null;      // item whose name is being edited
+let pressedLong = 0;         // when a long-press opened the editor; the click that follows is ignored
+function editText(id, span){
+  const it = L.items.find(i => i.id === id); if (!it || editingText) return;
+  if (editingTags){ editingTags = null; render(); return; }
+  editingText = id;
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'txtedit'; inp.id = 'txtEdit'; inp.maxLength = 120; inp.value = it.text;
+  inp.setAttribute('aria-label', 'Rename ' + it.text); inp.setAttribute('enterkeyhint', 'done');
+  // keep taps inside the box from crossing the item off
+  ['click', 'pointerdown'].forEach(ev => inp.addEventListener(ev, e => e.stopPropagation()));
+  span.replaceWith(inp); inp.focus(); inp.select();
+  let finished = false;
+  const finish = save => {
+    if (finished) return; finished = true; editingText = null;
+    const n = norm(inp.value);
+    if (save && n && n !== it.text) change('pouch_set_text', { p_item:id, p_text:n }, () => { it.text = n; });
+    else render();
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); finish(true); } if (e.key === 'Escape') finish(false); });
+  inp.addEventListener('blur', () => finish(true));
+}
 function editQty(id, pill){
   if (editingTags){ editingTags = null; render(); return; }
   const it = L.items.find(i => i.id === id); if (!it) return;
@@ -865,7 +969,19 @@ function itemLi(it){
     w.title = (it.done && it.done_by ? 'Crossed off by ' : 'Added by ') + by.name;
     w.setAttribute('aria-label', w.title); tog.append(w);
   }
-  tog.addEventListener('click', () => toggle(it.id));
+  tog.addEventListener('click', () => { if (Date.now() - pressedLong < 700) return; toggle(it.id); });
+  // Long-press (or right-click on a computer) to fix the item's name
+  let pressT = null, startX = 0, startY = 0;
+  const cancelPress = () => { clearTimeout(pressT); pressT = null; };
+  tog.addEventListener('pointerdown', e => {
+    if (it.id.startsWith('tmp-') || e.button > 0) return;
+    startX = e.clientX; startY = e.clientY;
+    pressT = setTimeout(() => { pressT = null; pressedLong = Date.now(); editText(it.id, t); }, 550);
+  });
+  tog.addEventListener('pointermove', e => { if (pressT && Math.hypot(e.clientX - startX, e.clientY - startY) > 10) cancelPress(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => tog.addEventListener(ev, cancelPress));
+  tog.addEventListener('contextmenu', e => { e.preventDefault(); if (!it.id.startsWith('tmp-') && editingText !== it.id){ cancelPress(); editText(it.id, t); } });
+  tog.title = 'Long-press to rename';
   const q = document.createElement('button'); q.type = 'button';
   const qv = it.qty || '1';
   q.className = 'qty' + (qv === '1' ? ' one' : ''); q.textContent = qv;
@@ -911,6 +1027,12 @@ function renderList(){
   $('#listName').textContent = list ? list.name : '…';
   document.title = (list ? list.name + ' · ' : '') + (L.name || 'Pouch');
   $('#finishedNote').hidden = !(list && list.archived_at);
+  if (list && list.archived_at){
+    const n = curItems().length, dest = L.lists.find(x => !x.archived_at && x.id !== list.id);
+    $('#reuseBtn').textContent = dest ? `Add all ${n} item${n === 1 ? '' : 's'} to “${dest.name}”` : `Start a new list with these ${n} item${n === 1 ? '' : 's'}`;
+    $('#reuseBtn').dataset.dest = dest ? dest.id : '';
+    $('#reuseBtn').hidden = !n;
+  }
   const visible = curItems().filter(i => !hidden.has(i.id));
   const activeAll = visible.filter(i => !i.done || just.has(i.id) || deleting.has(i.id)).sort(sorter());
   if (filterCat && !activeAll.some(i => !i.done && (i.cats || []).includes(filterCat))) filterCat = null;
@@ -918,7 +1040,7 @@ function renderList(){
   const done = visible.filter(i => i.done && !just.has(i.id) && !deleting.has(i.id))
                       .sort((a,b) => (b.done_at || '').localeCompare(a.done_at || ''));
   if (editingTags && $('#tagEdit')) refreshTagEditor();
-  if (!(editingTags && $('#tagEdit')) && !editingQty){
+  if (!(editingTags && $('#tagEdit')) && !editingQty && !editingText){
     $('#activeList').replaceChildren(...active.map(itemLi));
     $('#doneList').replaceChildren(...done.map(itemLi));
   }
@@ -1293,7 +1415,7 @@ async function checkForUpdate(){
 }
 function updateIfSafe(){
   if (!updateTo || document.hidden) return;
-  const busy = L.pending || pendingDeletes.length || deleting.size || editingQty || editingTags || draggingCats
+  const busy = L.pending || queue().length || pendingDeletes.length || deleting.size || editingQty || editingTags || editingText || draggingCats
     || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
   if (busy){ setTimeout(updateIfSafe, 5000); return; }
   // reload at most once per version, in case the new files haven't reached every server yet
@@ -1440,6 +1562,22 @@ $('#shareBtn').addEventListener('click', shareTopic);
 $('#shareBtnT').addEventListener('click', shareTopic);
 
 /* ================= lists in a topic ================= */
+// On a finished list: put everything on the newest open list again (or on a new list)
+$('#reuseBtn').addEventListener('click', async () => {
+  const from = L.sub, id = L.id, btn = $('#reuseBtn');
+  let dest = btn.dataset.dest;
+  btn.disabled = true;
+  try {
+    if (!dest) dest = (await rpc('pouch_sub_create', { p_list:id, p_pass:L.pass, p_name:dayLabel(new Date()), p_move_from:null })).new_list;
+    const s = await rpc('pouch_sub_copy', { p_list:id, p_pass:L.pass, p_from:from, p_to:dest, p_device:deviceId() });
+    if (L.id !== id) return;
+    apply(s);
+    L.channel && L.channel.send({ type:'broadcast', event:'changed', payload:{} });
+    location.hash = id + '.' + dest;
+    toast('Added to ' + (L.lists.find(x => x.id === dest)?.name || 'the list'));
+  } catch { toast('Couldn’t add them. Check your connection.'); }
+  finally { btn.disabled = false; }
+});
 $('#listBack').addEventListener('click', () => { location.hash = L.id + '.'; });
 $('#historyMore').addEventListener('click', () => { historyAll = true; render(); });
 $('#newListBtn').addEventListener('click', () => {
@@ -1512,7 +1650,9 @@ $('#deleteSubBtn').addEventListener('click', async () => {
   } catch { toast('Couldn’t delete the list. Check your connection.'); }
 });
 
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) navigator.serviceWorker.register('sw.js').catch(() => {});
 route();
+if (queue().length) flushQueue();
 </script>
 </body>
 </html>
