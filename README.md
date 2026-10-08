@@ -45,7 +45,7 @@ Tip: on your phone, open that address and use **Add to Home Screen** so it opens
 
 - **Topics and lists:** a *topic* (e.g. "Shopping") is what you share: it has the link and password, the people, the categories and everything the app remembers. Inside a topic you make *lists*, e.g. one per shopping trip.
 - **New topic:** type your name, a topic name and a password on the start page. Its first list (named with today's date) opens straight away.
-- **New list:** on the topic screen tap **+ New list**. It's named with today's date (rename it if you like). If the newest list still has unbought items, you can move them over (on by default).
+- **New list:** on the topic screen tap **+ New list**. It's named with today's date (rename it if you like). If the newest open list still has unbought items, it asks whether to move them to the new list (it names them), and you choose **Move them** or **Leave them**.
 - **History:** a list where everything is crossed off moves to **History** on the topic screen automatically, showing what was bought on that trip. Open it any time; adding something or bringing an item back reopens it.
 - **List menu (⋯ on a list):** rename or delete the list, open Categories, or jump to the topic's settings.
 - **Share:** tap the share icon. The link includes the password, so whoever taps it gets straight into the topic's newest list, and their phone remembers the topic.

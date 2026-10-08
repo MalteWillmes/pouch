@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>const APP_VERSION = "20261007190556";</script>
-<script src="categories.js?v=20261007190556"></script>
+<script>const APP_VERSION = "20261008141917";</script>
+<script src="categories.js?v=20261008141917"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -191,6 +191,9 @@ input.catname:focus{border-color:var(--gum);background:var(--bg)}
 .check{display:flex;align-items:flex-start;gap:10px;font-size:15px;line-height:1.35}
 .check input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--gum);flex:none}
 .row2{display:flex;gap:8px}
+.moveask{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--gum-soft)}
+.moveask p{margin:0}
+.moveask p:first-child{font-weight:600}
 .row2 .btn{flex:1}
 #nameSlotT:empty{display:none}
 .note{margin:0;padding:12px 14px;border-radius:14px;background:var(--gum-soft);color:var(--ink);font-size:15px}
@@ -314,8 +317,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
     <button class="btn" type="button" id="newListBtn">+ New list</button>
     <form class="newlist" id="newListForm" autocomplete="off" hidden>
       <div class="field"><label for="newListName">List name</label><input id="newListName" type="text" maxlength="40"></div>
-      <label class="check" id="moveWrap"><input type="checkbox" id="moveOpen" checked><span id="moveLabel"></span></label>
-      <div class="row2"><button class="btn ghost" type="button" id="newListCancel">Cancel</button><button class="btn" type="submit" id="newListCreate">Create</button></div>
+      <div class="row2" id="newListBtns"><button class="btn ghost" type="button" id="newListCancel">Cancel</button><button class="btn" type="submit" id="newListCreate">Create</button></div>
+      <div class="moveask" id="moveAsk" hidden>
+        <p id="moveQ"></p>
+        <p class="hint" id="moveItems"></p>
+        <div class="row2"><button class="btn ghost" type="button" id="moveNo">Leave them</button><button class="btn" type="button" id="moveYes">Move them</button></div>
+      </div>
     </form>
   </section>
   <section id="activeSec" hidden><h2 class="sechead">Lists</h2><ul class="lists" id="activeLists"></ul></section>
@@ -1434,20 +1441,28 @@ $('#historyMore').addEventListener('click', () => { historyAll = true; render();
 $('#newListBtn').addEventListener('click', () => {
   $('#newListBtn').hidden = true; $('#newListForm').hidden = false;
   $('#newListName').value = dayLabel(new Date());
-  // offer to bring over what wasn't bought on the newest list that still has things left
-  const src = L.lists.find(x => !x.archived_at && x.open > 0);
-  $('#moveWrap').hidden = !src;
-  $('#moveOpen').checked = true;
-  if (src){ $('#moveWrap').dataset.src = src.id; $('#moveLabel').textContent = `Move the ${src.open} unbought item${src.open === 1 ? '' : 's'} from “${src.name}”`; }
+  $('#moveAsk').hidden = true; $('#newListBtns').hidden = false;
   $('#newListName').focus(); $('#newListName').select();
 });
 $('#newListCancel').addEventListener('click', () => { $('#newListForm').hidden = true; $('#newListBtn').hidden = false; });
-$('#newListForm').addEventListener('submit', async e => {
+// Before creating, ask whether the unbought items of the newest open list should come along
+$('#newListForm').addEventListener('submit', e => {
   e.preventDefault();
+  const src = L.lists.find(x => !x.archived_at && x.open > 0);
+  if (!src){ createList(null); return; }
+  const names = L.items.filter(i => i.list === src.id && !i.done).map(i => i.text);
+  $('#moveQ').textContent = `“${src.name}” still has ${src.open} unbought item${src.open === 1 ? '' : 's'}. Move ${src.open === 1 ? 'it' : 'them'} to the new list?`;
+  $('#moveItems').textContent = names.slice(0, 6).join(', ') + (names.length > 6 ? ` and ${names.length - 6} more` : '');
+  $('#moveAsk').dataset.src = src.id;
+  $('#newListBtns').hidden = true; $('#moveAsk').hidden = false;
+  $('#moveYes').focus();
+});
+$('#moveYes').addEventListener('click', () => createList($('#moveAsk').dataset.src));
+$('#moveNo').addEventListener('click', () => createList(null));
+async function createList(from){
   const name = norm($('#newListName').value) || dayLabel(new Date());
-  const from = !$('#moveWrap').hidden && $('#moveOpen').checked ? $('#moveWrap').dataset.src : null;
   const id = L.id;
-  $('#newListCreate').disabled = true;
+  $('#newListCreate').disabled = $('#moveYes').disabled = $('#moveNo').disabled = true;
   try {
     const s = await rpc('pouch_sub_create', { p_list:id, p_pass:L.pass, p_name:name, p_move_from:from });
     if (L.id !== id) return;
@@ -1456,8 +1471,8 @@ $('#newListForm').addEventListener('submit', async e => {
     closeSheets();
     location.hash = id + '.' + s.new_list;
   } catch { toast('Couldn’t create the list. Check your connection.'); }
-  finally { $('#newListCreate').disabled = false; }
-});
+  finally { $('#newListCreate').disabled = $('#moveYes').disabled = $('#moveNo').disabled = false; }
+}
 $('#listMenuBtn').addEventListener('click', () => {
   const open = $('#listSheet').hidden; $('#listSheet').hidden = !open;
   $('#listMenuBtn').setAttribute('aria-expanded', String(open));
