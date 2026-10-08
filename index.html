@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>const APP_VERSION = "20261008141917";</script>
-<script src="categories.js?v=20261008141917"></script>
+<script>const APP_VERSION = "20261008144224";</script>
+<script src="categories.js?v=20261008144224"></script>
 <style>
 /* Layout: one thumb-friendly column; sticky add bar; open items first, crossed-off pile tucked below */
 :root{
@@ -923,7 +923,7 @@ function renderList(){
     $('#doneList').replaceChildren(...done.map(itemLi));
   }
   renderFilter(activeAll);
-  $('#sortBar').hidden = activeAll.filter(i => !i.done).length < 1;
+  $('#sortBar').hidden = !visible.length;   // Copy list works on any list with items, even if all are crossed off
   $('#sortWrap').hidden = activeAll.filter(i => !i.done).length < 2;
   $('#sortSel').value = sortMode();
   $('#sortSel').querySelector('[value="cat"]').hidden = !L.cats.length;
@@ -1309,9 +1309,13 @@ checkForUpdate();
 //   Groceries
 //   - 2 melk
 //   - brød
+// Copies the open items; on a list where everything is crossed off, copies all of them
+// as plain items again (handy for reusing a past trip).
 function listAsText(){
-  const open = curItems().filter(i => !i.done && !hidden.has(i.id) && !deleting.has(i.id)).sort(sorter());
-  const shown = filterCat ? open.filter(i => (i.cats || []).includes(filterCat)) : open;
+  const all = curItems().filter(i => !hidden.has(i.id) && !deleting.has(i.id));
+  const open = all.filter(i => !i.done);
+  const pick = (open.length ? open : all).slice().sort(sorter());
+  const shown = filterCat ? pick.filter(i => (i.cats || []).includes(filterCat)) : pick;
   const cat = filterCat && L.cats.find(c => c.id === filterCat);
   const title = L.name + (curList() ? ' – ' + curList().name : '') + (cat ? ` (${cat.name})` : '');
   return [title, ...shown.map(i => '- ' + (i.qty && i.qty !== '1' ? i.qty + ' ' : '') + i.text)].join('\n');
